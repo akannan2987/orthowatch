@@ -113,15 +113,15 @@ show the trending views and a before/after of the device-name cleanup.
 |---|---|---|
 | — | [Glossary — every term in plain words](docs/GLOSSARY.md) | ✅ living document |
 | 0 | [Architecture — how it all fits together](docs/00-architecture.md) | ✅ |
-| 0 | [Environment setup from a blank laptop](docs/01-setup.md) | ✅ |
-| 1 | [Ingestion: FDA API → local database](docs/02-phase-1-ingestion.md) | ✅ |
-| 2 | [Cleaning & harmonization](docs/03-phase-2-cleaning.md) | ✅ |
-| 3 | Complaint trending | planned |
-| 4 | Signal detection + automated tests | planned |
-| 5 | Text mining the narratives | planned |
-| 6 | Interactive dashboard (Shiny) | planned |
-| 7 | Reproducible report & one-command pipeline | planned |
-| 8 | Polish & release notes | planned |
+| 1 | [Environment setup from a blank laptop](docs/01-setup.md) | ✅ |
+| 2 | [Ingestion: FDA API → local database](docs/02-phase-1-ingestion.md) | ✅ |
+| 3 | [Cleaning & harmonization](docs/03-phase-2-cleaning.md) | ✅ |
+| 4 | Complaint trending | planned |
+| 5 | Signal detection + automated tests | planned |
+| 6 | Text mining the narratives | planned |
+| 7 | Interactive dashboard (Shiny) | planned |
+| 8 | Reproducible report & one-command pipeline | planned |
+| 9 | Polish & release notes | planned |
 
 ## Bumps hit along the way (kept on purpose)
 
