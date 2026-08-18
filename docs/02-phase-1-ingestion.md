@@ -247,15 +247,66 @@ Open `analysis/00_verify_ingest.R` in RStudio and run it **line by line**
 cross-language handoff: Python fetched and loaded; R now reads the same
 database. Every serious data team has a seam like this somewhere.
 
-The checkpoint passes when:
+For every query, here is what you should see (numbers from one real
+August 2026 download — yours will differ slightly in size, never in
+shape) and what it means:
 
-1. `dbListTables(con)` returns `"raw_events"`.
-2. The row count matches the loader's summary from step 7.
-3. The top-15 `generic_name` query shows FDA-style names — including
-   inconsistent variants of the same device concept. **That mess is next
-   phase's raw material.** Screenshot it; it belongs in your eventual
-   README as the "before" picture.
-4. The per-year query returns all five years.
+**Query 1 — what tables exist:**
+
+```
+[1] "raw_events"
+```
+
+The cabinet holds exactly one table so far; Phase 2 adds the second.
+
+**Query 2 — how many rows:**
+
+```
+  n_rows
+1  84549
+```
+
+Must equal the loader's "rows written" figure exactly — same database,
+same count, two languages.
+
+**Query 3 — first five rows:** five real report forms, e.g.
+
+```
+          report_number date_received  event_type          generic_name
+1    8030965-2020-00001      20200102      Injury   PLATE,FIXATION,BONE
+2    2939274-2020-00013      20200102      Injury PLATE, FIXATION, BONE
+...
+```
+
+Note `date_received` is still an eight-digit *text string*, not a real
+date — and rows 1–2 already show the same device spelled with and
+without spaces. Both facts are Phase 2's to fix.
+
+**Query 4 — the top device names:** FDA-style comma-inverted names
+(`PROSTHESIS, KNEE` ~10.9k, `PROSTHESIS, HIP` ~10.6k, ...) including
+near-duplicate variants (`PLATE, FIXATION, BONE` *and* `PLATE, BONE`)
+and even a name cut off mid-word by the source (`..., POROUS, CO`).
+**This mess is next phase's raw material** — screenshot it; it's the
+"before" picture for your README.
+
+**Query 5 — reports per year:** all five fetched years, tens of
+thousands each, e.g.
+
+```
+  year     n
+1 2020 20543
+2 2021 18243
+3 2022 15151
+4 2023 13755
+5 2024 16857
+```
+
+Counts moving year to year is normal — and resist reading meaning into
+the movement yet: reporting volume is not incidence (see the honesty
+notes in the README). Phase 3 treats trends properly.
+
+The checkpoint passes when all five outputs match in shape, and query
+2 matches your loader summary exactly.
 
 ## 9. Same task, different language (optional, 15 min)
 
