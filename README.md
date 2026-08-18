@@ -2,20 +2,21 @@
 
 **Post-market signal detection for orthopedic medical devices, built on real FDA MAUDE adverse event data.**
 
-> 🚧 **Status: under construction.** This repository doubles as a step-by-step
-> tutorial. Everything here can be reproduced from a blank laptop by following
-> the numbered guides in [`docs/`](docs/), in order.
+> 🚧 **Status: in active development.** This repository doubles as a
+> step-by-step tutorial: everything here can be reproduced from a blank
+> laptop by following the numbered guides in [`docs/`](docs/), in order.
 
 ## What this project does
 
-Medical device manufacturers are required by law to monitor how their products
-perform after launch (this is called **post-market surveillance**). The FDA
-publishes millions of device adverse event reports in its MAUDE database.
-OrthoWatch pulls the orthopedic slice of that data and builds the core
-surveillance workflow on top of it:
+Medical device manufacturers are required by law to monitor how their
+products perform after launch — a discipline called **post-market
+surveillance**. The FDA publishes millions of device adverse event reports
+in its MAUDE database. OrthoWatch pulls the orthopedic slice of that data
+and builds the core surveillance workflow on top of it:
 
 1. **Ingest** — a Python script fetches reports from the free openFDA API
-   into a local SQLite database.
+   into a local SQLite database, with a provenance log recording exactly
+   what was fetched and when.
 2. **Clean** — R scripts harmonize the notoriously messy records
    (duplicates, inconsistent device names, missing fields).
 3. **Detect** — statistical complaint trending and disproportionality
@@ -25,18 +26,46 @@ surveillance workflow on top of it:
 5. **Serve** — an interactive **R Shiny dashboard** for exploration and an
    auto-regenerating **Quarto report** for the record.
 
+## Build log
+
+| Phase | Guide | Status |
+|---|---|---|
+| 0 · Architecture | [`docs/00-architecture.md`](docs/00-architecture.md) | ✅ |
+| 0 · Environment setup | [`docs/01-setup.md`](docs/01-setup.md) | ✅ |
+| 1 · Ingestion (openFDA → SQLite) | [`docs/02-phase-1-ingestion.md`](docs/02-phase-1-ingestion.md) | ✅ |
+| 2 · Cleaning & harmonization | `docs/03-…` | 🔜 |
+| 3 · Complaint trending | `docs/04-…` | planned |
+| 4 · Signal detection (PRR/ROR) + tests | `docs/05-…` | planned |
+| 5 · Text mining | `docs/06-…` | planned |
+| 6 · Shiny dashboard | `docs/07-…` | planned |
+| 7 · Reproducible report & pipeline | `docs/08-…` | planned |
+| 8 · Polish & release notes | `docs/09-…` | planned |
+
+Lessons already learned the hard way (each documented in the Phase 1
+guide's FAQ): FDA generic device names are comma-inverted, so
+exact-phrase searches silently miss them; `api.fda.gov` sits behind
+bot-detection that 403s anonymous script traffic; and MAUDE list fields
+can contain nulls *inside* them. The fixes — probe-before-fetch,
+authenticate-and-identify, and defensive joins — are part of the code.
+
 ## Data source & honesty notes
 
 - Data comes from the [openFDA device event API](https://open.fda.gov/apis/device/event/),
-  which serves publicly releasable Medical Device Reports (MDRs) from the FDA's
-  MAUDE database (~1992–present, updated weekly).
-- MAUDE data has well-known limitations: reports are unverified, under- and
-  over-reporting exist, and report counts are **not** device failure rates.
-  This project detects *signals for investigation*, exactly as real
-  surveillance teams treat this data — it does not draw safety conclusions
-  about any real product.
+  which serves publicly releasable Medical Device Reports (MDRs) from the
+  FDA's MAUDE database (updated weekly). A free API key
+  ([get one here](https://open.fda.gov/apis/authentication/)) is
+  effectively required for bulk fetching; the setup guide covers storing
+  it safely outside the repo.
+- MAUDE data has well-known limitations, stated by the FDA itself:
+  reports are unverified, under- and over-reporting exist, and report
+  counts are **not** device failure rates. This project detects *signals
+  for investigation*, exactly as real surveillance treats this data — it
+  does not draw safety conclusions about any real product or manufacturer.
+- Some large device/year slices exceed openFDA's ~26,000-result paging
+  ceiling; the fetch log records any truncation honestly.
 - In 2026 the FDA began consolidating MAUDE into its new Adverse Event
-  Monitoring System (AEMS); the openFDA API is expected to remain compatible.
+  Monitoring System (AEMS); the openFDA API is expected to remain
+  compatible.
 
 ## Repository map
 
@@ -53,13 +82,21 @@ surveillance workflow on top of it:
 
 ## How to run
 
-See [`docs/01-setup.md`](docs/01-setup.md) — it assumes a completely blank
-machine and explains every step.
+Follow [`docs/01-setup.md`](docs/01-setup.md) — it assumes a completely
+blank machine and explains every step, then hand off to the Phase 1
+guide. In short: clone, restore the R environment (`renv::restore()`),
+create the Python venv, export your free openFDA API key, then
+
+```bash
+python ingest/fetch_maude.py --probe   # see what's available
+python ingest/fetch_maude.py           # fetch raw reports
+python ingest/load_to_sqlite.py        # build the SQLite database
+```
 
 ## Why the documentation is so detailed
 
 Documentation quality is a deliberate deliverable of this project, not an
-afterthought. In regulated industries (medical devices, pharma), an analysis
-that cannot be reproduced and explained is worthless — so this repo is written
-so that a complete beginner can rebuild it from scratch and learn the concepts
-along the way.
+afterthought. In regulated industries (medical devices, pharma), an
+analysis that cannot be reproduced and explained is worthless — so this
+repo is written so that a complete beginner can rebuild it from scratch
+and learn the concepts along the way.

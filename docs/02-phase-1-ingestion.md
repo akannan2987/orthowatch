@@ -139,7 +139,9 @@ echo $OPENFDA_API_KEY      # expected: your key printed back
 Open `fetch_maude.py` in RStudio and **read the configuration block** at
 the top before running anything. Knowing what a script will do before
 running it is a professional reflex worth building on day one. The four
-device queries mirror the targeted orthopedic platforms (joints, trauma, spine). The script's header also records
+device queries cover major orthopedic device families: joint
+reconstruction (hip, knee), trauma fixation (bone plates), and spinal
+fixation. The script's header also records
 its own v1→v2 history — the query fix and the 403 handling — because a
 repo that shows its corrections teaches more than one that hides them.
 
@@ -207,7 +209,7 @@ head -c 500 data/raw/fetch_log.csv    # the traceability log
 Open `fetch_log.csv` (RStudio can view it): one row per slice — what was
 asked, when, how many existed, how many were fetched, and whether the
 slice was complete or truncated. **This file is your answer to "where
-did this data come from?"** — keep the phrase *traceability by design*.
+did this data come from?"** — the principle is *traceability by design*.
 
 > These files are gitignored (recall why from setup: data is regenerated
 > by scripts; the repo proves the pipeline works precisely because the
@@ -257,7 +259,8 @@ The checkpoint passes when:
 
 ## 9. Same task, different language (optional, 15 min)
 
-Here's the API call from step 2, in **R** — run it in the Console if curious:
+This project deliberately uses both R and Python. Here's the API call
+from step 2, in R — run it in the Console if curious:
 
 ```r
 library(httr2)   # install.packages("httr2") first; renv::snapshot() after
@@ -273,16 +276,12 @@ body <- resp_body_json(resp)
 body$meta$results$total     # same number you saw in the browser
 ```
 
-**Trade-offs, honestly**: R's httr2 is every bit as capable for API work.
-We used Python for ingestion because 
-
-(a) I wanted to show how this done in Python and this gives it a real, bounded job; 
-
-(b) in industry, ingestion is more often owned by Python; 
-
-(c) a clean Python→SQL→R seam is a better story than one language doing everything. 
-
-Being able to *justify* a language choice matters more than the choice.
+Trade-offs, honestly: R's httr2 is every bit as capable for API work.
+We used Python for ingestion because (a) in industry, ingestion is more
+often owned by Python; (b) a clean Python→SQL→R seam mirrors how real
+data teams hand work across specialties; and (c) it keeps each language
+doing what it is best known for. Being able to *justify* a language choice
+matters more than the choice.
 
 ## 10. Commit checkpoint
 
@@ -320,6 +319,12 @@ comma-inverted ("PROSTHESIS, HIP"), so exact-phrase searches miss them;
 AND-style term searches (`(hip AND prosthesis)`) don't. Check the
 encoding before trusting the count (step 2.3).
 
+**`TypeError: ... expected str instance, NoneType found` while loading**
+— a list field inside a report contains a null entry (yes, really —
+e.g. `product_problems = ["Fracture", None]`). The loader's
+`join_clean()` helper filters these out before joining. General lesson:
+real-world JSON lists can contain nulls; filter before you join.
+
 **`Network error: could not reach api.fda.gov`** — no internet, or a
 corporate proxy is interfering. Try the browser URL from step 2; if the
 browser works but the script doesn't, you're behind a proxy — run from a
@@ -340,7 +345,7 @@ files exist. Idempotence — safe to rerun — is a design feature.
 than ~26,000 reports; skip/limit paging can't reach the rest. The log
 records available vs. fetched. The professional fix (openFDA's
 Search-After feature or bulk downloads) is on the roadmap — and
-explaining that trade-off in an interview is a strength.
+documenting the trade-off openly is part of doing this properly.
 
 **`database is locked` when loading** — the DB is open elsewhere (often
 a forgotten R connection from step 8). Disconnect and rerun.

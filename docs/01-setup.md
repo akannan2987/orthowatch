@@ -2,12 +2,10 @@
 
 **Prerequisites:** a laptop (Windows or macOS), an internet connection, and
 about 60–90 minutes. No prior installs, no prior knowledge.
-
 **Learning goal:** by the end you will have every tool installed, understand
 what each one is for, have a GitHub repository containing this project's
 skeleton, and have made your first commit. You will also understand *why*
 projects isolate their environments.
-
 **Checkpoint at the end:** a verification checklist where every command
 produces the expected output.
 
@@ -23,11 +21,11 @@ produces the expected output.
 
 | Tool | What it is (plain words) | Why this project needs it |
 |---|---|---|
-| **R** | A programming language built by statisticians for data analysis | The job description requires R; all analysis is in R |
+| **R** | A programming language built by statisticians for data analysis | All statistical analysis here is in R — the standard language of medical and pharma statistics |
 | **RStudio** | A friendly workbench (editor) for writing and running R | Makes R usable: run code line by line, see plots and tables |
-| **Python** | A general-purpose programming language | Fetches data from the FDA API (the JD lists Python too) |
-| **Git** | A save-game system for code: every meaningful change becomes a snapshot you can return to | Version control is named in the JD; also how work gets to GitHub |
-| **GitHub** | The online home for Git snapshots — and your public portfolio | Recruiters will read this repo |
+| **Python** | A general-purpose programming language | Fetches data from the FDA API — the most common ingestion language in industry |
+| **Git** | A save-game system for code: every meaningful change becomes a snapshot you can return to | Tracks every change the project makes; also how work gets to GitHub |
+| **GitHub** | The online home for Git snapshots — where the project lives in public | So anyone can read, reproduce, and learn from this work |
 | **Quarto** | Turns text + code + outputs into polished self-updating reports | Powers the surveillance report in phase 7 |
 
 Everything is free.
@@ -150,13 +148,13 @@ Expected output: a version number like `1.7.32`.
 ## 7. Create your GitHub account and the project repository
 
 1. Go to <https://github.com> → **Sign up**. Choose a professional username
-   — it will appear on your CV (e.g., `firstname-lastname` or similar).
+   — it becomes part of this project's public address (e.g., `firstname-lastname` or similar).
    The free plan is all you need.
 2. Once logged in, click the **+** (top right) → **New repository**.
 3. Fill in:
    - **Repository name:** `orthowatch`
    - **Description:** `Post-market signal detection for orthopedic devices, on real FDA MAUDE data`
-   - **Public** (recruiters must be able to see it)
+   - **Public** (so others can read and reproduce it)
    - Tick **"Add a README file"** (this gives the repo a starting point we
      can clone; we'll replace the README's contents in a moment)
 4. Click **Create repository**.
@@ -250,7 +248,7 @@ other people wrote. If you install them globally — one shared pile for your
 whole laptop — then six months from now, upgrading a package for some other
 project can silently break this one. An **isolated environment** gives each
 project its own sealed toolbox, plus a written list of exactly which tool
-versions it uses, so anyone (including future-you, or a recruiter) can
+versions it uses, so anyone (including future-you) can
 recreate it perfectly. In R that tool is **renv**; in Python, **venv**.
 
 In the RStudio **Console** (the R one, not the Terminal):
@@ -407,7 +405,7 @@ Manager" manually from its GitHub page.
 Terminal**.
 
 **Corporate laptop blocks installs** — do this project on a personal
-machine; portfolio work shouldn't live on an employer's device anyway.
+machine; personal projects shouldn't live on an employer's device anyway.
 
 ---
 

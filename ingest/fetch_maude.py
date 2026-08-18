@@ -54,7 +54,7 @@ RAW_DIR = pathlib.Path("data/raw")
 # with suspicion; a descriptive User-Agent with a contact point is API
 # etiquette (and often the difference between 200 and 403).
 HEADERS = {
-    "User-Agent": "orthowatch/0.2 (portfolio project; "
+    "User-Agent": "orthowatch/0.2 (open-source project; "
                   "github.com/akannan2987/orthowatch)"
 }
 

@@ -42,8 +42,8 @@ the MAUDE database, from about 1992 to the present, updated weekly.
 
 **data/raw/ (the evidence locker).** We save exactly what the API returned,
 and we never edit those files. Why: in regulated analytics you must always
-be able to prove what the source said. This is **traceability**, and it is a
-word the target job description uses. If a number in the final report is
+be able to prove what the source said. This is **traceability** — a habit
+regulated industries treat as non-negotiable. If a number in the final report is
 ever questioned, we can walk it back to a raw file.
 
 **SQLite database (organized storage).** A hundred thousand reports in loose
@@ -77,7 +77,7 @@ alone is not enough.
 Data flows **one way** (top to bottom in the diagram), and no step edits its
 own input. Consequence: delete everything except `data/raw/` and the code,
 rerun the pipeline, and you get byte-for-byte identical results. That
-property — reproducibility — is a core requirement in the job description
+property — reproducibility — is a baseline expectation in regulated analytics
 and a core habit of this project.
 
 ## Where each phase of the build lives
@@ -91,6 +91,6 @@ and a core habit of this project.
 | 5 | `06-phase-5-text-mining.md` | Analysis engine (narratives) |
 | 6 | `07-phase-6-shiny-dashboard.md` | Frontend |
 | 7 | `08-phase-7-report-and-pipeline.md` | Quarto report + one-command glue |
-| 8 | `09-phase-8-packaging.md` | README polish, CV & LinkedIn kit |
+| 8 | `09-phase-8-packaging.md` | README polish & release notes |
 
 Next: [`01-setup.md`](01-setup.md) — building your workshop from a blank laptop.
