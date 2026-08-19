@@ -538,10 +538,21 @@ the file really on master? Check the raw copy:
 was. (2) Has Pages *deployed* it yet? Don't guess — watch: the repo's
 **Actions** tab lists every "pages build and deployment" run; a
 spinner means still building (queues of several minutes happen), a
-green check means live. (3) Browser cache: browsers briefly remember
-404s, so after the green check, hard-refresh (Cmd+Shift+R) or use a
-private window. Also: Settings → Pages must say branch master +
-folder /docs, and URLs are case-sensitive.
+green check means live. (3) **No run appeared at all for your push?**
+The trigger occasionally gets dropped on GitHub's side. Two fixes:
+kick it with an empty commit — a commit with zero file changes whose
+only job is to generate a fresh push event
+(`git commit --allow-empty -m "chore: trigger Pages rebuild"`, then
+push) — or, without touching history, force a redeploy from the
+browser: Settings → Pages, switch the folder away and back (e.g.
+/docs → root → Save → /docs → Save); re-saving the source
+re-registers the deployment and fires a build within a minute (the
+brief wrong-config build may warn — harmless). (4) Browser cache: browsers
+briefly remember 404s, so after the green check, hard-refresh
+(Cmd+Shift+R) or use a private window — and in Safari, click into the
+address bar to confirm you're at the FULL path, not the bare domain.
+Also: Settings → Pages must say branch master + folder /docs, and
+URLs are case-sensitive.
 
 **The figures in this document don't display** — you're reading the
 raw markdown locally (RStudio shows text, not rendered pages). View the
