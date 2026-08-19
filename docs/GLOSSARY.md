@@ -271,3 +271,52 @@ file carries its own JavaScript, any file host suffices). Server-side:
 on a running program elsewhere (Shiny re-running R code on every click
 — needs a live server). The line between them decides where something
 can be hosted.
+
+## The signal-detection words (added in Phase 4)
+
+**Contingency table (2x2)** — four boxes sorting every report by two
+yes/no questions at once: in family D or not × mentions problem P or
+not. The cells are named a, b, c, d; every statistic in Phase 4 is
+arithmetic on them.
+
+**Odds** — "with, per without": 8 reports with a problem per 92
+without = odds of 8/92. A proportion says 8 in 100; odds repackage
+the same fact.
+
+**PRR (Proportional Reporting Ratio)** — how many times larger a
+problem's *share* is among one family's reports than among everyone
+else's. PRR 3 = three times the share.
+
+**ROR (Reporting Odds Ratio)** — the same comparison using odds:
+(a×d)/(b×c). Comes with a textbook confidence-interval formula, which
+is why vigilance teams like it.
+
+**Confidence interval (95% CI)** — the range of values plausibly
+compatible with the data, luck included. If even its lower end sits
+above 1, "just luck" stops being a comfortable explanation.
+
+**Chi-square (χ²)** — a surprise score for a table: how far it sits
+from what pure no-association would produce. ≥ 4 is the conventional
+bar (roughly p < 0.05).
+
+**Evans rule** — the published first-pass signal definition used in
+vigilance: PRR ≥ 2 AND χ² ≥ 4 AND a ≥ 3, all at once.
+
+**Disproportionality analysis** — the family name for all of the
+above: finding (device, problem) pairs reported out of proportion.
+
+**Signal** *(sharpened)* — a pair passing the rule: over-REPORTED,
+which is a reason to investigate, never proof of risk.
+
+**Unit test** — a claim about code, written as code: "given this tiny
+hand-worked input, the function must return exactly this." Lives in
+`tests/`, runs on command, turns red when broken.
+
+**testthat** — R's standard testing package: `test_that("claim", {
+expect_equal(got, wanted) })`. `Rscript tests/run_tests.R` runs the
+whole suite.
+
+**Integer overflow** — when arithmetic exceeds what a number type can
+hold (R's integers cap near 2.1 billion) and the result silently
+becomes NA or nonsense. This project's test suite caught exactly this
+in the χ² denominator before the code met real data.

@@ -130,3 +130,43 @@ p4 <- ggplot(cc, aes(month, n)) +
 ggsave("docs/img/control_chart_anatomy.png", p4, width = 8.6, height = 4.6, dpi = 150)
 
 cat("wrote:", paste(list.files("docs/img", pattern = "png$"), collapse = ", "), "\n")
+
+# ── 5. The 2x2 contingency table behind PRR/ROR (Phase 4) ────────────
+cells <- tibble(
+  x = c(1, 2, 1, 2),
+  y = c(2, 2, 1, 1),
+  cell = c("a", "b", "c", "d"),
+  desc = c("family D reports\nWITH problem P",
+           "family D reports\nWITHOUT problem P",
+           "other families\nWITH problem P",
+           "other families\nWITHOUT problem P")
+)
+p5 <- ggplot(cells, aes(x, y)) +
+  geom_tile(fill = c("#fde0dd", "#e8e8e8", "#e8e8e8", "#e8e8e8"),
+            color = "grey30", linewidth = 0.6, width = 0.97, height = 0.97) +
+  geom_text(aes(label = cell), fontface = "bold", size = 10,
+            nudge_y = 0.22) +
+  geom_text(aes(label = desc), size = 3.4, nudge_y = -0.14,
+            color = "grey25") +
+  annotate("text", x = 1, y = 2.62, label = "problem P reported",
+           size = 3.8, fontface = "bold") +
+  annotate("text", x = 2, y = 2.62, label = "problem P not reported",
+           size = 3.8, fontface = "bold") +
+  annotate("text", x = 0.30, y = 2, label = "device\nfamily D",
+           size = 3.8, fontface = "bold") +
+  annotate("text", x = 0.30, y = 1, label = "all other\nfamilies",
+           size = 3.8, fontface = "bold") +
+  annotate("text", x = 1.5, y = 0.28, size = 3.9, label =
+    "PRR = ( a / (a+b) )  /  ( c / (c+d) )     ROR = (a x d) / (b x c)") +
+  annotate("text", x = 1.5, y = 0.06, size = 3.2, color = "grey35", label =
+    "PRR: 'the share of D's reports that mention P, compared to everyone else's share'") +
+  scale_x_continuous(limits = c(-0.15, 2.6)) +
+  scale_y_continuous(limits = c(-0.1, 2.8)) +
+  labs(title = "Every signal statistic starts from this 2x2 table",
+       subtitle = "Count every report into exactly one cell; a is the cell under investigation.") +
+  theme_void(base_size = 12) +
+  theme(plot.title.position = "plot",
+        plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(color = "grey30"))
+ggsave("docs/img/contingency_2x2.png", p5, width = 7.6, height = 5.2, dpi = 150)
+cat("2x2 diagram written\n")

@@ -359,6 +359,35 @@ To https://github.com/YOURNAME/orthowatch.git
 
 Refresh your GitHub page — your structure and docs are live. 🎉
 
+### 12b. The verification habit (three checks that prevent real incidents)
+
+Every one of these guards against a mistake that actually happened
+during this project's build — adopt them as reflexes:
+
+1. **Confirm files landed — especially dot-files.** macOS Finder hides
+   files starting with a dot, making them the easiest to lose when
+   copying. Don't trust your eyes; ask Git or the shell:
+   `git ls-files | grep gitignore` or `ls -la`. (Real incident: a
+   `.gitignore` arrived without its dot and sat inert while the real
+   one lacked the protective rules.)
+2. **Prove ignore rules fire before relying on them.**
+   `git check-ignore -v path/to/file` prints the exact rule catching a
+   file — or nothing, meaning it's NOT protected. Cheap to run, and
+   the difference between "I think it's ignored" and "it's ignored".
+   (Real incident: a 4 MB generated file reached the public repo
+   because its rule was missing; `check-ignore` would have said so in
+   one line.)
+3. **Read BOTH zones of `git status` before every commit.** The top
+   zone ("Changes to be committed") is what the commit will contain;
+   the bottom ("Changes not staged") will be silently left behind.
+   Scan the top for anything that shouldn't ship (data, generated
+   files, secrets) and the bottom for anything that should. (Real
+   incident: an edited `.gitignore` sat unstaged through a commit
+   whose message claimed to include it.)
+
+Thirty seconds total, every commit. The phase guides' commit steps
+assume you're doing this.
+
 ## 13. Verification checklist
 
 Run each; tick each ✅ when the output matches.
