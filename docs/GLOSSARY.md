@@ -207,3 +207,67 @@ vs. the machinery working behind it (fetching, cleaning, computing).
 **Reproducible** — the property that re-running the project's code on
 the same inputs produces identical results, every time, on anyone's
 machine. The quiet goal behind almost every design choice here.
+
+## The statistics words (added in Phase 3)
+
+**Time series** — the same quantity measured repeatedly at regular
+intervals, kept in time order: e.g. reports per month for five years
+= a sequence of 60 numbers. This project tracks four of them, one per
+device family. Trending = studying a time series.
+
+**Average (mean)** — the typical level of a series: total divided by
+number of months.
+
+**Standard deviation (σ, "sigma")** — how far a series typically
+strays from its average month to month. For counts of independently
+arriving events (Poisson-distributed: variance = mean), σ equals the
+square root of the average — the fact control limits are built on.
+
+**Control chart** — a standard quality-control tool: plot the series,
+draw its average, and draw a band three standard deviations wide
+around it. Inside the band = ordinary variation, no action; outside =
+something changed, investigate. Everyday version: a 30-minute commute
+varying 27–33 is normal; a 55-minute one means something happened. Points inside the band = ordinary randomness; points
+outside = something changed, investigate.
+
+**Control limits (UCL / LCL)** — the band's edges: Upper and Lower
+Control Limit, at average ± 3 × standard deviation. Above the UCL = unusually many
+reports; below the LCL = unusually few (both matter).
+
+**Three sigma (3σ)** — the conventional width of the band. Wide enough
+that ordinary randomness essentially never crosses it, so crossings
+deserve attention.
+
+**Signal vs. noise** — noise is ordinary random variation; a signal
+is a movement too large to be that. A flag marks a signal — it says
+"investigate", never "unsafe".
+
+**Baseline** — the period or level you compare against ("the rest of
+2020" vs. "the spike window").
+
+**ggplot2** — R's standard charting package: declare what maps to what
+(x, y, color), then add layers (lines, points, bands, panels).
+
+**Facet** — ggplot's word for splitting one chart into small multiples
+— one panel per device family.
+
+**plotly** — a widely used library for interactive charts (hover,
+zoom, click-to-hide) that run in a web browser. In R,
+`plotly::ggplotly()` converts an existing ggplot chart — same chart,
+browser superpowers.
+
+**Widget / htmlwidget** — an interactive chart packaged as an HTML
+file: open it in any browser, no R needed. "Self-contained" means the
+file embeds everything it needs (hence its size, ~4 MB).
+
+**GitHub Pages** — GitHub's free static-website hosting: flip a switch
+in a repo's settings and files from a chosen folder are served as real
+web pages at `https://username.github.io/repo/...`. Static = plain
+files only; perfect for our widget, unusable for a Shiny app.
+
+**Client-side vs. server-side** — where interactive work happens.
+Client-side: in the visitor's browser (our plotly hover/zoom — the
+file carries its own JavaScript, any file host suffices). Server-side:
+on a running program elsewhere (Shiny re-running R code on every click
+— needs a live server). The line between them decides where something
+can be hosted.

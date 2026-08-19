@@ -104,8 +104,22 @@ your numbers will differ slightly)*
 | Reports describing a death | 129 |
 | Distinct raw device-name spellings | hundreds — collapsed to 5 families by the cleaning step |
 
-**Screenshots** — coming with the dashboard phase; this section will
-show the trending views and a before/after of the device-name cleanup.
+**First results** — monthly reports per device family with 3-sigma
+control limits (grey band = expected range if reporting were steady;
+red dots = months flagged for investigation, orange = unusually few):
+
+![Monthly trends with control limits](figures/trend_by_family.png)
+
+▶ [Explore the interactive version](https://akannan2987.github.io/orthowatch/interactive/trend_by_family.html)
+— hover any point for its exact numbers; drag to zoom.
+
+Two findings worth clicking into: a five-fold, single-month tower in
+spinal fixation reports (July 2021, +51.7 standard deviations — the
+classic silhouette of a batch submission) and the mid-2020 bone-plate
+surge, which per-month analysis shows concentrated in one reporter and
+in the *unspecified* problem category — a reporting-behavior pattern,
+not evidence any device got worse. Flags mean *investigate*, never
+*unsafe*.
 
 ## Build log
 
@@ -113,15 +127,15 @@ show the trending views and a before/after of the device-name cleanup.
 |---|---|---|
 | — | [Glossary — every term in plain words](docs/GLOSSARY.md) | ✅ living document |
 | 0 | [Architecture — how it all fits together](docs/00-architecture.md) | ✅ |
-| 1 | [Environment setup from a blank laptop](docs/01-setup.md) | ✅ |
-| 2 | [Ingestion: FDA API → local database](docs/02-phase-1-ingestion.md) | ✅ |
-| 3 | [Cleaning & harmonization](docs/03-phase-2-cleaning.md) | ✅ |
-| 4 | Complaint trending | planned |
-| 5 | Signal detection + automated tests | planned |
-| 6 | Text mining the narratives | planned |
-| 7 | Interactive dashboard (Shiny) | planned |
-| 8 | Reproducible report & one-command pipeline | planned |
-| 9 | Polish & release notes | planned |
+| 0 | [Environment setup from a blank laptop](docs/01-setup.md) | ✅ |
+| 1 | [Ingestion: FDA API → local database](docs/02-phase-1-ingestion.md) | ✅ |
+| 2 | [Cleaning & harmonization](docs/03-phase-2-cleaning.md) | ✅ |
+| 3 | [Complaint trending](docs/04-phase-3-trending.md) | ✅ |
+| 4 | Signal detection + automated tests | planned |
+| 5 | Text mining the narratives | planned |
+| 6 | Interactive dashboard (Shiny) | planned |
+| 7 | Reproducible report & one-command pipeline | planned |
+| 8 | Polish & release notes | planned |
 
 ## Bumps hit along the way (kept on purpose)
 
@@ -166,6 +180,68 @@ Phase 1 guide's troubleshooting section:
   (AEMS); the data service is expected to remain compatible.
 
 ## Repository map
+
+The full tree, annotated with the phase that creates each file. When a
+tutorial phase hands you a new file, this is where it goes:
+
+```
+orthowatch/
+├── README.md                      ← you are here
+├── .gitignore                     ← files Git must ignore (setup)
+├── .Rprofile                      ← created by renv; activates it (setup)
+├── orthowatch.Rproj               ← marks this folder as an RStudio project
+├── renv.lock                      ← exact R package versions (setup)
+├── renv/                          ← R's sealed package toolbox (setup)
+├── .venv/                         ← Python's sealed toolbox — NOT in Git
+│
+├── docs/                          ← the tutorials: read these in order
+│   ├── GLOSSARY.md                ← every term, plain language
+│   ├── 00-architecture.md         ← how it all fits together
+│   ├── 01-setup.md                ← blank laptop → working workshop
+│   ├── 02-phase-1-ingestion.md    ← Phase 1 guide
+│   ├── 03-phase-2-cleaning.md     ← Phase 2 guide
+│   ├── 04-phase-3-trending.md     ← Phase 3 guide
+│   ├── img/                       ← teaching figures (synthetic data)
+│   │   ├── make_illustrations.R   ← regenerates the four PNGs below
+│   │   ├── time_series_anatomy.png
+│   │   ├── absent_vs_zero.png
+│   │   ├── sqrt_rule.png
+│   │   └── control_chart_anatomy.png
+│   ├── interactive/               ← published interactive charts, served
+│   │   └── trend_by_family.html      as web pages by GitHub Pages (Phase 3)
+│   └── .nojekyll                  ← tells Pages: serve files as-is
+│
+├── ingest/                        ← Python: getting the data (Phase 1)
+│   ├── requirements.txt           ← exact Python package versions
+│   ├── fetch_maude.py             ← FDA API → data/raw/
+│   └── load_to_sqlite.py          ← data/raw/ → the database
+│
+├── R/                             ← the engine: reusable, tested functions
+│   ├── clean_events.R             ← cleaning rules (Phase 2)
+│   └── trending.R                 ← control-limit trending (Phase 3)
+│
+├── analysis/                      ← narratives: scripts run line by line
+│   ├── 00_verify_ingest.R         ← Phase 1 checkpoint
+│   ├── 01_clean_events.R          ← Phase 2 walkthrough
+│   └── 02_trending.R              ← Phase 3 walkthrough
+│
+├── data/                          ← NOT in Git; regenerated by scripts
+│   ├── raw/                       ← untouched FDA downloads + fetch_log.csv
+│   └── processed/                 ← orthowatch.db (the SQLite database)
+│
+├── figures/                       ← real-data charts (created in Phase 3;
+│                                    PNGs committed — the README's screenshots;
+│                                    interactive *.html previews NOT in Git)
+├── tests/                         ← automated checks (arrives Phase 4)
+├── app/                           ← Shiny dashboard (arrives Phase 6)
+└── report/                        ← Quarto report (arrives Phase 7)
+```
+
+Two kinds of "empty": `tests/`, `app/`, `report/` hold only a
+placeholder until their phase arrives; `data/` fills up on your machine
+but stays out of Git on purpose (the pipeline regenerates it — that's
+the proof it works). And two kinds of figures: `docs/img/` = synthetic
+teaching illustrations; `figures/` = charts computed from the real data.
 
 | Path | What lives here |
 |---|---|
