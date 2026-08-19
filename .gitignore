@@ -29,3 +29,11 @@ report/*_files/
 .DS_Store
 Thumbs.db
 .Ruserdata
+
+ Interactive chart previews # 
+# figures/*.html are throwaway previews, regenerated on every run 
+# committing ~4 MB of embedded chart library per run would bloat Git's
+# permanent history. The PUBLISHED copy lives in docs/interactive/
+# (committed deliberately, served by GitHub  see Phase 3, 4.8c).Pages 
+figures/*.html
+figures/*_files/
