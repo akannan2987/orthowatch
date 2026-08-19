@@ -37,3 +37,8 @@ Thumbs.db
 # (committed deliberately, served by GitHub  see Phase 3, 4.8c).Pages 
 figures/*.html
 figures/*_files/
+
+# R's default plot dump when scripts draw outside  a sideRStudio 
+# effect of Rscript runs, never a deliverable (real figures are saved
+# deliberately into figures/).
+Rplots.pdf

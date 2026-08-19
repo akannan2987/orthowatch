@@ -152,6 +152,14 @@ renv::snapshot()
 
 (You can delete `tests/.gitkeep` — the folder has real contents now.)
 
+**Files-landed check:**
+
+```bash
+ls R/signal_detection.R analysis/03_signal_detection.R tests/run_tests.R \
+   tests/testthat/test-signal_detection.R tests/testthat/test-trending.R \
+   docs/img/contingency_2x2.png
+```
+
 ## 3. Run the script, step by step
 
 Open `analysis/03_signal_detection.R`; chunk by chunk as always.

@@ -369,7 +369,11 @@ during this project's build — adopt them as reflexes:
    copying. Don't trust your eyes; ask Git or the shell:
    `git ls-files | grep gitignore` or `ls -la`. (Real incident: a
    `.gitignore` arrived without its dot and sat inert while the real
-   one lacked the protective rules.)
+   one lacked the protective rules.) For a *replaced* file — same
+   name, new content — existence checks are blind; instead grep for a
+   phrase that exists only in the new version: a count of 1 means the
+   new file, 0 means the old one still sits there. Copy the phrase
+   from the actual file, never from memory (see the meta-rule below).
 2. **Prove ignore rules fire before relying on them.**
    `git check-ignore -v path/to/file` prints the exact rule catching a
    file — or nothing, meaning it's NOT protected. Cheap to run, and
@@ -384,6 +388,23 @@ during this project's build — adopt them as reflexes:
    files, secrets) and the bottom for anything that should. (Real
    incident: an edited `.gitignore` sat unstaged through a commit
    whose message claimed to include it.)
+
+4. **A green test run only vouches for the tests it received.** A
+   suite with a missing test file passes with a smaller count — and
+   `FAIL 0` looks identical to real success. So never read just the
+   verdict line: read the *context list* and the *total* against what
+   you expect ("three contexts, 36 tests"). (Real incident: a
+   misplaced delivery left the suite at 22 tests across two contexts;
+   the run glowed green while a third of the checks simply weren't
+   there.)
+
+And one meta-rule that the incident above also taught: **a
+verification command is only trustworthy if it was itself tested
+against the artifact.** A grep string written from memory instead of
+copied from the actual file produces a check that fails on perfectly
+healthy files — which is worse than no check, because it manufactures
+false alarms. Before relying on any "is this the new version?"
+command, run it once where the answer is known.
 
 Thirty seconds total, every commit. The phase guides' commit steps
 assume you're doing this.

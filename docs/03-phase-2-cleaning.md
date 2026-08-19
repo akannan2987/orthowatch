@@ -109,6 +109,12 @@ carries `date_received_iso` and `year_month` columns.
 | `clean_events.R` | `R/` | The engine: reusable cleaning functions |
 | `01_clean_events.R` | `analysis/` | The narrative: investigate → clean → inspect → write |
 
+**Files-landed check:**
+
+```bash
+ls R/clean_events.R analysis/01_clean_events.R
+```
+
 No new packages needed — `dplyr`, `stringr`, `lubridate`, and `tibble`
 all arrived with tidyverse in setup.
 
@@ -303,8 +309,16 @@ empty basket still matters, twice over: (1) if the downloads ever
 widen (more device types, looser searches), unmatched names will land
 *visibly* in Other instead of being silently mislabeled — that's what
 step 4.8 is for; (2) it's a tripwire today — a *large* Other with our
-narrow download means something changed underneath us. If Other is
-absent, the counts table simply shows 4 rows; that's fine. (And don't
+narrow download means something changed underneath us. In practice a
+*handful* of Other rows does appear (10 in the reference run: bone
+screws, bone cement, a wire passer), and the mechanism is worth
+knowing: the FDA search matches *any* device listed on a report, but
+our Phase 1 loader keeps only the *first* listed device. A report can
+be fetched because its second device was a bone plate, yet flattened
+to its first device — a screw. Those rows are the loader's documented
+flattening simplification made visible (check `n_devices_on_report`
+on them), not a bug. If Other is absent, the counts table simply
+shows 4 rows; a large Other is the only alarming outcome. (And don't
 confuse this with `event_type = "Other"` — that one is the FDA's own
 tick-box for what *kind* of bad event occurred; same word, unrelated
 column.)

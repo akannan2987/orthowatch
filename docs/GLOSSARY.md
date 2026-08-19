@@ -320,3 +320,33 @@ whole suite.
 hold (R's integers cap near 2.1 billion) and the result silently
 becomes NA or nonsense. This project's test suite caught exactly this
 in the χ² denominator before the code met real data.
+
+## The text-mining words (added in Phase 5)
+
+**Corpus** — a collection of texts treated as one dataset; ours is
+~84K report narratives.
+
+**Token / tokenization** — a token is one countable piece of text
+(here: a lowercase word); tokenization is the chopping that produces
+them. Computers don't read — they count tokens.
+
+**Stop words** — filler words removed before counting: standard
+English filler ("the", "was") plus *domain* filler that appears in
+virtually every narrative here ("patient", "device"). Removing them
+is judgment, documented in the engine.
+
+**Term frequency / rate** — how often a word occurs, always
+normalized (per 10,000 words of that family's text), because
+families write different amounts — same denominator lesson as PRR.
+
+**Rate ratio / log2 ratio (words)** — Phase 4's 2×2 arithmetic with
+words in the cells: a word's rate in one family divided by its rate
+everywhere else, smoothed against zeros; reported as log2 (+1 =
+twice, +3 = eight times).
+
+**Boilerplate** — template text reporters paste into many narratives;
+inflates word counts without carrying case-specific meaning. The
+reason counting guides but reading decides.
+
+**Bigram** — a two-word token ("metal debris"); useful when single
+words lose the phrase. A documented extension, not used in the core.

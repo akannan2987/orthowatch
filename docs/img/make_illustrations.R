@@ -170,3 +170,38 @@ p5 <- ggplot(cells, aes(x, y)) +
         plot.subtitle = element_text(color = "grey30"))
 ggsave("docs/img/contingency_2x2.png", p5, width = 7.6, height = 5.2, dpi = 150)
 cat("2x2 diagram written\n")
+
+# ── 6. The text-mining pipeline: narrative -> tokens -> counts (Phase 5)
+steps <- tibble(
+  y = c(4, 3, 2, 1),
+  title = c("1. The narrative (raw text)",
+            "2. Tokenize: chop into words, lowercased",
+            "3. Remove stop words (filler + domain boilerplate)",
+            "4. Count what remains"),
+  body = c('"PT UNDERWENT REVISION SURGERY. METAL DEBRIS NOTED\nAROUND THE FEMORAL STEM. DEVICE RETURNED TO MFR."',
+           "pt | underwent | revision | surgery | metal | debris |\nnoted | around | the | femoral | stem | device |\nreturned | to | mfr",
+           "revision | surgery | metal | debris |\nfemoral | stem | returned",
+           "metal: 1   debris: 1   revision: 1   surgery: 1\nfemoral: 1   stem: 1   returned: 1")
+)
+p6 <- ggplot(steps, aes(y = y)) +
+  geom_rect(aes(xmin = 0, xmax = 10, ymin = y - 0.42, ymax = y + 0.42),
+            fill = c("#fff3e0", "#e8f0f8", "#e8f0f8", "#e5f2e5"),
+            color = "grey40", linewidth = 0.4) +
+  geom_text(aes(x = 0.25, y = y + 0.28, label = title),
+            hjust = 0, size = 3.9, fontface = "bold") +
+  geom_text(aes(x = 0.25, y = y - 0.09, label = body),
+            hjust = 0, size = 3.1, family = "mono", color = "grey20",
+            lineheight = 1.0) +
+  annotate("segment", x = 5, xend = 5, y = c(3.55, 2.55, 1.55),
+           yend = c(3.45, 2.45, 1.45),
+           arrow = arrow(length = unit(0.16, "cm")), color = "grey40") +
+  scale_x_continuous(limits = c(0, 10)) +
+  scale_y_continuous(limits = c(0.5, 4.6)) +
+  labs(title = "From a report narrative to countable words",
+       subtitle = "Counting is what computers do well; these three steps turn stories into something countable.\nNote what survives: the clinically meaningful words. Note what's gone: grammar, filler, boilerplate.") +
+  theme_void(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(color = "grey30"),
+        plot.title.position = "plot")
+ggsave("docs/img/text_mining_pipeline.png", p6, width = 8.4, height = 5.4, dpi = 150)
+cat("text-mining pipeline diagram written\n")

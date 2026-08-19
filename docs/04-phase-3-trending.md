@@ -129,6 +129,14 @@ outputs computed from the real data.
 
 No new packages — `ggplot2` and `tidyr` arrived with tidyverse in setup.
 
+**Files-landed check:**
+
+```bash
+ls R/trending.R analysis/02_trending.R docs/img/make_illustrations.R \
+   docs/img/control_chart_anatomy.png docs/img/time_series_anatomy.png \
+   docs/img/absent_vs_zero.png docs/img/sqrt_rule.png
+```
+
 **Read `R/trending.R` first**, top to bottom. The header explains the
 statistics in one paragraph; each function explains its own reason for
 existing, including the one honest limitation (a spike slightly raises

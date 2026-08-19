@@ -136,6 +136,13 @@ echo $OPENFDA_API_KEY      # expected: your key printed back
 | `load_to_sqlite.py` | `ingest/` | raw JSON → SQLite table |
 | `00_verify_ingest.R` | `analysis/` | prove R can read the result |
 
+**Files-landed check** (the habit from setup §12b — `ls` screams
+`No such file` for anything missing):
+
+```bash
+ls ingest/fetch_maude.py ingest/load_to_sqlite.py analysis/00_verify_ingest.R
+```
+
 Open `fetch_maude.py` in RStudio and **read the configuration block** at
 the top before running anything. Knowing what a script will do before
 running it is a professional reflex worth building on day one. The four
