@@ -104,36 +104,71 @@ your numbers will differ slightly)*
 | Reports describing a death | 129 |
 | Distinct raw device-name spellings | hundreds — collapsed to 5 families by the cleaning step |
 
-**First results** — monthly reports per device family with 3-sigma
-control limits (grey band = expected range if reporting were steady;
-red dots = months flagged for investigation, orange = unusually few):
+**Results so far, phase by phase** — each phase leaves a visible
+artifact; here is one per phase, with what it means.
+
+### Phase 2 — Cleaning: 912 spellings become 5 families
+
+The raw downloads spell the same devices 912 different ways
+(`PLATE, BONE` / `PLATE,FIXATION,BONE` / `BONE PLATE`, ...). The
+cleaning step normalizes formatting and sorts every report into an
+analyzable device family — with a printed ledger so no row vanishes
+silently (84,549 in, 84,547 out: exactly the two follow-up duplicate
+forms, no more):
+
+| Device family | Reports |
+|---|---|
+| Knee prosthesis | 33,834 |
+| Hip prosthesis | 30,754 |
+| Bone plate | 11,097 |
+| Spinal fixation | 8,852 |
+| Other (screws, cement, etc.) | 10 |
+
+### Phase 3 — Trending: when did reporting move?
+
+Monthly reports per family with 3-sigma control limits (grey band =
+the expected range if reporting were steady; red dots = months
+flagged for investigation, orange = unusually few):
 
 ![Monthly trends with control limits](figures/trend_by_family.png)
 
-▶ [Explore the interactive version](https://akannan2987.github.io/orthowatch/interactive/trend_by_family.html)
+▶ [Trends, interactive](https://akannan2987.github.io/orthowatch/interactive/trend_by_family.html)
 — hover any point for its exact numbers; drag to zoom.
-
-▶ [Signals, interactive](https://akannan2987.github.io/orthowatch/interactive/signals_top.html)
-— each device family's strongest disproportionality signals (PRR/ROR
-with the Evans rule); hover for the full problem name, the 2×2
-counts, and the confidence interval.
 
 Two findings worth clicking into: a five-fold, single-month tower in
 spinal fixation reports (July 2021, +51.7 standard deviations — the
 classic silhouette of a batch submission) and the mid-2020 bone-plate
-surge, which per-month analysis shows concentrated in one reporter and
-in the *unspecified* problem category — a reporting-behavior pattern,
-not evidence any device got worse. Flags mean *investigate*, never
-*unsafe*.
+surge, which per-month analysis shows concentrated in one reporter
+and in the *unspecified* problem category — a reporting-behavior
+pattern, not evidence any device got worse. Flags mean
+*investigate*, never *unsafe*.
 
-Signal detection (Phase 4) sharpens the question from *when* to
-*what*: 64 device–problem pairs pass the published Evans rule, and
-they cohere clinically — a metal-degradation cluster for hips,
-slippage for spinal fixation, wear and instability for knees, an
-intraoperative-fit cluster for bone plates. The method also validates
-itself: the dataset's biggest problem category (26k vague
-"unidentified problem" mentions) signals for no family, exactly as a
-category present everywhere should.
+### Phase 4 — Signal detection: which problems belong to which devices?
+
+Trending says *when*; disproportionality analysis asks the sharper
+question: is a problem over-represented among one family's reports,
+measured against that family's own report total? Each family's
+strongest signals, all passing the published Evans rule (PRR ≥ 2,
+χ² ≥ 4, at least 3 reports); dot = reporting odds ratio, whiskers =
+95% confidence interval, dashed line = "reported no more than
+everyone else":
+
+![Strongest signals per device family](figures/signals_top.png)
+
+▶ [Signals, interactive](https://akannan2987.github.io/orthowatch/interactive/signals_top.html)
+— hover for the full problem name, the 2×2 counts, and the
+confidence interval.
+
+64 device–problem pairs signal, and they cohere clinically: a
+metal-degradation cluster for hips (Corroded, Material Erosion,
+Biocompatibility), slippage and material integrity for spinal
+fixation, wear and instability for knees, an intraoperative-fit
+cluster for bone plates. The method also validates itself: the
+dataset's biggest problem category (26,093 vague "unidentified
+problem" mentions) signals for **no** family — exactly as a category
+present everywhere should. All 2×2 arithmetic is guarded by the
+project's 22-test suite. Over-reported ≠ over-occurring: signals open
+investigations, never close them.
 
 ## Build log
 

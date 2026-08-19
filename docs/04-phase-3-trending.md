@@ -523,11 +523,17 @@ nicely from GitHub** — expected: GitHub shows HTML files as source
 code, not as rendered pages, which is exactly why the file is
 gitignored and the PNGs remain the official screenshots.
 
-**The Pages URL gives a 404** — three usual causes: Pages was just
-enabled and is still building (wait two minutes, refresh); the
-branch/folder in Settings → Pages isn't master + /docs; or the
-published file wasn't pushed to master (run 8c, commit, push — your
-multi-branch push covers master). URLs are case-sensitive.
+**The Pages URL gives a 404** — work through these in order: (1) Is
+the file really on master? Check the raw copy:
+`https://raw.githubusercontent.com/USER/REPO/master/docs/interactive/FILE.html`
+— 404 there means it wasn't committed/pushed; a page of HTML means it
+was. (2) Has Pages *deployed* it yet? Don't guess — watch: the repo's
+**Actions** tab lists every "pages build and deployment" run; a
+spinner means still building (queues of several minutes happen), a
+green check means live. (3) Browser cache: browsers briefly remember
+404s, so after the green check, hard-refresh (Cmd+Shift+R) or use a
+private window. Also: Settings → Pages must say branch master +
+folder /docs, and URLs are case-sensitive.
 
 **The figures in this document don't display** — you're reading the
 raw markdown locally (RStudio shows text, not rendered pages). View the
