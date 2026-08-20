@@ -391,3 +391,48 @@ drill-downs.
 **Deploy** — putting an app where others reach it. A Shiny app needs
 a server that runs R (e.g. shinyapps.io's free tier) — a roadmap
 item here, not a phase.
+
+## The pipeline words (added in Phase 7)
+
+**Pipeline** — an assembly line for data: raw material in one end,
+finished tables/figures/reports out the other, through stages that
+each do one job in a fixed order.
+
+**Stage** — one job in the pipeline, wrapped as a callable function
+taking the config. Wrapped as functions, stages can be run by the
+runner, the tests, a scheduler, or an app — not just by a human
+remembering an order.
+
+**Configuration (config)** — the settings panel, kept apart from the
+machinery: every tunable number in one file the stages read. Change
+a threshold, rerun, done.
+
+**Runner / orchestration** — the thin script that decides which
+stages run, in what order, with timing, stopping loudly on failure.
+Runners wrap pipelines; they never contain them. (Industrial-scale
+orchestrators — Airflow, Prefect — are this same idea with
+scheduling and retries; ours is the honest 60-line version.)
+
+**Final gate** — running the test suite as the pipeline's last
+stage, failing the whole run if any test fails: the pipeline
+verifies its own math every time, which is what makes it trustable
+unattended.
+
+**Offline mode** — the default run skips the fetch: everything
+downstream of the raw files reruns freely; the expensive,
+credentialed, external step is opt-in by name.
+
+**Quarto / executable document** — prose with embedded code chunks;
+*rendering* runs the chunks against the data and weaves results into
+the text. Numbers are computed, never pasted, so the document cannot
+drift out of date. (Quarto ships inside RStudio.)
+
+**Render** — running an executable document to produce its output
+file (here: one self-contained HTML carrying its own charts and
+styles).
+
+**Reproducibility** — the demonstrated (not just promised) property
+that the same inputs give the same outputs: same raw files → same
+database → same tables and figures → same report, with the one
+outside-our-control rung stated honestly (a fresh fetch may differ,
+because MAUDE itself revises).

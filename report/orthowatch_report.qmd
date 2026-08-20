@@ -1,0 +1,167 @@
+---
+title: "OrthoWatch — post-market surveillance of orthopedic device reports"
+subtitle: "FDA MAUDE, 2020–2024 · control-chart trending · PRR/ROR signals · narrative mining"
+date: today
+format:
+  html:
+    embed-resources: true     # one self-contained file: charts, styles, all
+    toc: true
+    toc-title: "Sections"
+    theme: cosmo
+execute:
+  echo: false                 # a report shows results; the code lives in R/
+  warning: false
+  message: false
+---
+
+```{r setup}
+# The report is an EXECUTABLE DOCUMENT: every number and figure below
+# is computed from the database at render time — nothing pasted, so
+# the report can never drift out of date from the data.
+# Rendered from report/, the project root is one level up:
+knitr::opts_knit$set(root.dir = "..")
+```
+
+```{r load}
+suppressPackageStartupMessages({
+  library(DBI); library(RSQLite)
+  library(dplyr); library(tibble); library(tidyr); library(stringr)
+  library(ggplot2); library(knitr)
+})
+source("R/trending.R")
+source("R/signal_detection.R")
+source("R/text_mining.R")
+
+con <- dbConnect(RSQLite::SQLite(), "data/processed/orthowatch.db")
+
+monthly <- dbGetQuery(con, "SELECT * FROM monthly_trends") |>
+  as_tibble() |>
+  mutate(month_date = as.Date(paste0(year_month, "-01")))
+signals <- dbGetQuery(con, "SELECT * FROM signal_stats") |>
+  as_tibble() |>
+  mutate(evans_signal = as.logical(evans_signal))
+terms <- dbGetQuery(con, "SELECT * FROM narrative_terms") |> as_tibble()
+fam_counts <- dbGetQuery(con,
+  "SELECT device_family, COUNT(*) AS n FROM clean_events
+   GROUP BY device_family ORDER BY n DESC") |> as_tibble()
+n_total <- sum(fam_counts$n)
+date_range <- range(monthly$year_month)
+dbDisconnect(con)
+```
+
+## What this is
+
+`r format(n_total, big.mark = ",")` cleaned adverse event reports on
+orthopedic devices, drawn from the FDA's MAUDE database
+(`r date_range[1]` to `r date_range[2]`) and screened three ways: *when*
+did reporting move (control charts), *what* problems attach to *which*
+device families (disproportionality statistics), and what the
+free-text narratives say that the coded fields don't (text mining).
+
+**Read this first.** MAUDE reports are unverified reporter
+submissions. Counts reflect reporting behavior as much as device
+performance; report volume says nothing about how many devices are in
+use. Every flag and signal below means *investigate* — never
+*unsafe* — and nothing in this report is a finding about any product.
+
+```{r fam-table}
+fam_counts |>
+  mutate(n = format(n, big.mark = ",")) |>
+  kable(col.names = c("Device family", "Reports"),
+        caption = "Cleaned reports per device family.")
+```
+
+## When: monthly trends against control limits
+
+Each family's monthly report count, with a band at the mean ± 3
+standard deviations — the century-old control-chart convention:
+ordinary randomness lives inside the band; points outside deserve a
+question.
+
+```{r trends-plot, fig.width=9, fig.height=10}
+plot_trends(monthly)
+```
+
+```{r flags-table}
+monthly |>
+  filter(status != "within limits") |>
+  mutate(sd_out = round((n - center) / sigma, 1)) |>
+  arrange(desc(abs(sd_out))) |>
+  head(10) |>
+  select(device_family, year_month, n, center, status, sd_out) |>
+  kable(col.names = c("Family", "Month", "Reports", "Average",
+                      "Status", "SD from avg"),
+        caption = "The ten most extreme flagged months.")
+```
+
+Two caveats the numbers themselves taught: these series **trend**
+strongly, and a single five-year mean over-flags trending series
+(`r sum(monthly$status != "within limits")` of `r nrow(monthly)`
+months flag — rolling-baseline limits are the documented refinement
+on the roadmap); and the tallest towers here turned out, on
+investigation, to reflect **reporting behavior** — batch submissions
+concentrated in single reporters — rather than devices deteriorating.
+
+## What: disproportionality signals (PRR/ROR)
+
+For every (family, problem) pair, the 2×2-table statistics standard in
+vigilance, judged by the published Evans rule (PRR ≥ 2, χ² ≥ 4, at
+least 3 reports). Because each family is its own denominator, these
+are immune to the volume trends above.
+
+```{r signals-plot, fig.width=9, fig.height=10}
+plot_top_signals(signals)
+```
+
+```{r signals-table}
+signals |>
+  filter(evans_signal) |>
+  arrange(desc(prr)) |>
+  head(10) |>
+  mutate(across(c(prr, chi2, ror, ror_lo, ror_hi), ~ round(.x, 1))) |>
+  select(device_family, product_problem, a, prr, ror, ror_lo, ror_hi) |>
+  kable(col.names = c("Family", "Problem", "Reports (a)", "PRR",
+                      "ROR", "CI low", "CI high"),
+        caption = "The ten strongest signals by PRR.")
+```
+
+The `r sum(signals$evans_signal)` passing pairs cohere clinically —
+a metal-degradation cluster for hips, slippage and integrity for
+spinal fixation, wear and instability for knees, an
+intraoperative-fit cluster for bone plates — and the method validates
+itself: the dataset's largest, vaguest problem category signals for
+no family, exactly as a category present everywhere should.
+Over-reported ≠ over-occurring: signals open investigations, never
+close them.
+
+## What the stories say: narrative vocabulary
+
+The coded fields are the tip of each report; the free-text narrative
+is the substance. After tokenizing the narratives and stripping
+filler, each family's most distinctive words (rate in the family vs.
+everyone else — the same 2×2 arithmetic, applied to vocabulary):
+
+```{r terms-plot, fig.width=10, fig.height=7}
+plot_distinctive_terms(terms |>
+  mutate(word_total = ave(n, word, FUN = sum),
+         rate_family = per_10k / 1e4))
+```
+
+Text mining's two contributions here: it exposed a **subpopulation
+the codes hid** (the bone-plate family contains a large
+craniofacial/mandibular plating subgroup), and it **corroborated the
+coded signals from an independent direction** (hip narratives orbit a
+metal-on-metal resurfacing device class by name). It also settled two
+open questions by reading: the vague-coded reports' stories often
+contain specifics the codes omit, and one odd spinal signal traced to
+a single reporter's legal-disclaimer template — a reporting pattern,
+not a device pattern.
+
+## How this report was made
+
+This is an executable document: rendering it re-runs every query and
+figure against `data/processed/orthowatch.db`, which is itself
+rebuilt by a one-command pipeline (`Rscript run_pipeline.R`) whose
+final stage is the project's `r 50`-test suite. Same raw files in,
+same report out. Source, tutorials, and the full build story:
+[github.com/akannan2987/orthowatch](https://github.com/akannan2987/orthowatch).

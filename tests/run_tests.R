@@ -17,6 +17,8 @@ source("R/clean_events.R")
 source("R/trending.R")
 source("R/signal_detection.R")
 source("R/text_mining.R")
+source("pipeline/config.R")
+source("pipeline/stages.R")
 
 # Run everything; stop_on_failure makes Rscript exit non-zero on any
 # failure (so automation — a future CI step — can notice).

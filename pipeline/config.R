@@ -1,0 +1,36 @@
+# config.R — the pipeline's settings panel
+# ==========================================
+# Every tunable number the pipeline uses lives HERE, in one place —
+# never scattered through the stages. Change a threshold, rerun, done:
+# configuration is data, code is machinery, and keeping them apart is
+# what makes the machinery reusable. (Phase 8's app will read this
+# same config — one settings panel, many consumers.)
+#
+# The FETCH scope (which device families, which years to download) is
+# the one setting that lives elsewhere: in ingest/fetch_maude.py's
+# CONFIGURATION block, next to the API code it drives. Stated here so
+# nobody hunts for it.
+
+pipeline_config <- function() {
+  list(
+    # ── where things live ────────────────────────────────────────────
+    db_path         = "data/processed/orthowatch.db",
+    figures_dir     = "figures",
+    interactive_dir = "docs/interactive",   # published charts (Pages)
+
+    # ── the analysis scope ───────────────────────────────────────────
+    families = c("Hip prosthesis", "Knee prosthesis",
+                 "Bone plate", "Spinal fixation"),
+
+    # ── Phase 4 thresholds (documented judgments, tunable) ───────────
+    min_a             = 3,     # Evans floor: >= 3 reports per pair
+    min_problem_total = 30,    # drop problems mentioned < 30x overall
+    top_n_signals     = 5,     # per family, in the forest plot
+
+    # ── Phase 5 threshold ────────────────────────────────────────────
+    min_total_terms   = 50,    # drop words with < 50 total mentions
+
+    # ── behavior ─────────────────────────────────────────────────────
+    publish_interactive = TRUE   # copy interactive HTML to docs/ (Pages)
+  )
+}

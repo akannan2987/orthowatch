@@ -257,3 +257,51 @@ p7 <- ggplot(boxes) +
         plot.title.position = "plot")
 ggsave("docs/img/shiny_reactivity.png", p7, width = 9.6, height = 3.8, dpi = 150)
 cat("shiny reactivity diagram written\n")
+
+# ── 8. The pipeline: one command, every stage, tests as the gate (Phase 7)
+pboxes <- tibble(
+  x = c(1.2, 2.9, 4.6, 6.3, 6.3, 6.3, 8.0, 9.7),
+  y = c(2.0, 2.0, 2.0, 3.0, 2.0, 1.0, 2.0, 2.0),
+  label = c("fetch", "load", "clean", "trend", "signals", "terms",
+            "test", "report"),
+  sub = c("openFDA API\n(opt-in: long,\nneeds key)", "raw JSON\n-> raw_events",
+          "-> clean_events\n(ledger printed)", "-> monthly_trends\n+ figures",
+          "-> signal_stats\n+ figures", "-> narrative_terms\n+ figures",
+          "50-test suite\n= the GATE", "Quarto renders\nfrom the db"),
+  fill = c("#f5e6e6", rep("#e8f0f8", 5), "#e5f2e5", "#fff3e0")
+)
+p8 <- ggplot(pboxes) +
+  geom_rect(aes(xmin = x - 0.75, xmax = x + 0.75, ymin = y - 0.40,
+                ymax = y + 0.40), fill = pboxes$fill,
+            color = "grey40", linewidth = 0.4) +
+  geom_text(aes(x = x, y = y + 0.22, label = label),
+            size = 3.6, fontface = "bold") +
+  geom_text(aes(x = x, y = y - 0.10, label = sub),
+            size = 2.5, color = "grey25", lineheight = 0.95) +
+  annotate("segment",
+           x    = c(1.95, 3.65, 5.35, 5.35, 5.35, 7.05, 7.05, 7.05, 8.75),
+           xend = c(2.15, 3.85, 5.50, 5.50, 5.50, 7.22, 7.22, 7.22, 8.95),
+           y    = c(2.0, 2.0, 2.33, 2.0, 1.67, 2.67, 2.0, 1.33, 2.0),
+           yend = c(2.0, 2.0, 2.72, 2.0, 1.28, 2.30, 2.0, 1.70, 2.0),
+           arrow = arrow(length = unit(0.15, "cm")), color = "grey40") +
+  annotate("rect", xmin = 3.5, xmax = 7.3, ymin = 3.62, ymax = 4.28,
+           fill = "#f0f0f0", color = "grey45", linetype = "dashed") +
+  annotate("text", x = 5.4, y = 4.08, label = "pipeline/config.R",
+           size = 3.3, fontface = "bold") +
+  annotate("text", x = 5.4, y = 3.82, size = 2.6, color = "grey30",
+           label = "families, thresholds, paths - settings live here, not in the stages") +
+  annotate("segment", x = 5.4, xend = 5.4, y = 3.60, yend = 3.45,
+           arrow = arrow(length = unit(0.14, "cm")), color = "grey45") +
+  annotate("text", x = 1.2, y = 0.35, hjust = 0, size = 2.9,
+           color = "grey35", fontface = "italic",
+           label = "Rscript run_pipeline.R          (default: load -> ... -> test; fetch by name; report rendered separately)") +
+  scale_x_continuous(limits = c(0.3, 10.6)) +
+  scale_y_continuous(limits = c(0.1, 4.5)) +
+  labs(title = "One command, every stage - and the test suite is the gate",
+       subtitle = "Each stage is a callable function wrapping the engines you already built; the runner just walks the registry.\nA pipeline that ends by verifying its own math is a pipeline you can trust unattended.") +
+  theme_void(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(color = "grey30", size = 9.5),
+        plot.title.position = "plot")
+ggsave("docs/img/pipeline_diagram.png", p8, width = 9.8, height = 4.4, dpi = 150)
+cat("pipeline diagram written\n")

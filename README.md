@@ -212,6 +212,26 @@ published charts above are static-interactive and the dashboard is a
 picture. Deployment (e.g. shinyapps.io) is a documented roadmap
 item.
 
+### Phase 7 — Reproducibility, demonstrated
+
+Every stage — fetch, load, clean, trend, signals, terms — is now a
+config-driven callable function, and one command runs the lot in
+canonical order with the 50-test suite as the final gate:
+
+```
+Rscript run_pipeline.R
+```
+
+![The pipeline](docs/img/pipeline_diagram.png)
+
+And because stakeholders read reports, not databases: an executable
+Quarto report re-tells the whole analysis — every number and figure
+computed from the database at render time, never pasted — published
+here:
+**[▶ The OrthoWatch report](https://akannan2987.github.io/orthowatch/orthowatch_report.html)**
+(one self-contained page: the data, the three analyses, the honest
+caveats, and how the report made itself).
+
 ## Build log
 
 | # | Document | Status |
@@ -225,7 +245,7 @@ item.
 | 4 | [Signal detection + automated tests](docs/05-phase-4-signal-detection.md) | ✅ |
 | 5 | [Text mining the narratives](docs/06-phase-5-text-mining.md) | ✅ |
 | 6 | [Interactive dashboard (Shiny)](docs/07-phase-6-shiny-dashboard.md) | ✅ |
-| 7 | Reproducible report & one-command pipeline | planned |
+| 7 | [Reproducible report & one-command pipeline](docs/08-phase-7-pipeline-report.md) | ✅ |
 | 8 | Polish & release notes | planned |
 
 ## Bumps hit along the way (kept on purpose)
@@ -319,6 +339,11 @@ orthowatch/
 │   (docs/ also gains 05-phase-4-signal-detection.md and
 │    img/contingency_2x2.png in Phase 4)
 │
+├── run_pipeline.R                 ← the whole project, one command (Phase 7)
+├── pipeline/                      ← the assembly line (Phase 7)
+│   ├── config.R                   ← the settings panel — one place
+│   └── stages.R                   ← every stage as a callable function
+│
 ├── ingest/                        ← Python: getting the data (Phase 1)
 │   ├── requirements.txt           ← exact Python package versions
 │   ├── fetch_maude.py             ← FDA API → data/raw/
@@ -348,16 +373,19 @@ orthowatch/
 │   ├── run_tests.R                ← one command runs the whole suite
 │   └── testthat/
 │       ├── test-interactive_meta.R
+│       ├── test-pipeline.R
 │       ├── test-signal_detection.R
 │       ├── test-text_mining.R
 │       └── test-trending.R
 ├── app/                           ← the Shiny dashboard (Phase 6)
 │   └── app.R                      ← UI + server, one commented file
 │                                    run: shiny::runApp("app")
-└── report/                        ← Quarto report (arrives Phase 7)
+└── report/                        ← the executable report (Phase 7)
+    └── orthowatch_report.qmd      ← renders from the db; published
+                                     copy lives at docs/orthowatch_report.html
 ```
 
-Two kinds of "empty": `tests/`, `app/`, `report/` hold only a
+Two kinds of "empty": remaining placeholder folders hold only a
 placeholder until their phase arrives; `data/` fills up on your machine
 but stays out of Git on purpose (the pipeline regenerates it — that's
 the proof it works). And two kinds of figures: `docs/img/` = synthetic
