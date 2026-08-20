@@ -305,3 +305,39 @@ p8 <- ggplot(pboxes) +
         plot.title.position = "plot")
 ggsave("docs/img/pipeline_diagram.png", p8, width = 9.8, height = 4.4, dpi = 150)
 cat("pipeline diagram written\n")
+
+# ── 9. Blocking: one R session is a single-lane bridge (Phase 8)
+bl <- tibble(
+  x = c(1.5, 4.0, 6.5, 9.0,   1.5, 4.0, 6.5, 9.0),
+  y = c(rep(2.55, 4), rep(0.95, 4)),
+  lab = c("click\n'Run stages'", "R runs the stage\n(terms: ~45 s)",
+          "...browser WAITS\n(clicks queue up)", "done: log + timings\nappear, UI wakes",
+          "click\n'Run stages'", "worker process\nruns the stage",
+          "UI stays live\n(progress polls)", "result arrives\nwhen ready"),
+  fill = c("#fff3e0", "#e8f0f8", "#f5e6e6", "#e5f2e5",
+           "#fff3e0", "#e8f0f8", "#e5f2e5", "#e5f2e5")
+)
+p9 <- ggplot(bl) +
+  geom_rect(aes(xmin = x - 1.05, xmax = x + 1.05, ymin = y - 0.38,
+                ymax = y + 0.38), fill = bl$fill, color = "grey40",
+            linewidth = 0.4) +
+  geom_text(aes(x = x, y = y, label = lab), size = 2.9, lineheight = 0.95) +
+  annotate("segment", x = c(2.6, 5.1, 7.6, 2.6, 5.1, 7.6),
+           xend = c(2.9, 5.4, 7.9, 2.9, 5.4, 7.9),
+           y = rep(c(2.55, 0.95), each = 3), yend = rep(c(2.55, 0.95), each = 3),
+           arrow = arrow(length = unit(0.15, "cm")), color = "grey40") +
+  annotate("text", x = 0.35, y = 3.3, hjust = 0, size = 3.2, fontface = "bold",
+           label = "THIS APP (blocking): one session, one lane") +
+  annotate("text", x = 0.35, y = 1.7, hjust = 0, size = 3.2, fontface = "bold",
+           color = "grey45",
+           label = "ROADMAP (background): future/promises add a second lane") +
+  scale_x_continuous(limits = c(0.2, 10.4)) +
+  scale_y_continuous(limits = c(0.4, 3.6)) +
+  labs(title = "Why the browser freezes while a stage runs",
+       subtitle = "A Shiny session is ONE R process - a single-lane bridge. While it computes, it cannot also serve clicks.\nHonest design for a local tool: show progress, say how long, keep the long fetch off the bridge entirely.") +
+  theme_void(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(color = "grey30", size = 9.5),
+        plot.title.position = "plot")
+ggsave("docs/img/blocking_single_lane.png", p9, width = 9.4, height = 3.6, dpi = 150)
+cat("blocking diagram written\n")

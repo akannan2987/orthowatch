@@ -37,9 +37,13 @@ library(plotly)
 # directory (true for runApp("app"), for RStudio's Run App button,
 # and for headless tests alike) — so everything in the project root
 # is one level UP from here:
+source("../R/clean_events.R")
 source("../R/trending.R")
 source("../R/signal_detection.R")
 source("../R/text_mining.R")
+source("../R/console.R")
+source("../pipeline/config.R")
+source("../pipeline/stages.R")
 
 DB_PATH <- "../data/processed/orthowatch.db"
 
@@ -47,34 +51,51 @@ DB_PATH <- "../data/processed/orthowatch.db"
 con <- dbConnect(RSQLite::SQLite(), DB_PATH)
 onStop(function() dbDisconnect(con))   # tidy up when the app stops
 
-monthly <- dbGetQuery(con, "SELECT * FROM monthly_trends") |>
-  as_tibble() |>
-  mutate(month_date = as.Date(paste0(year_month, "-01")))
+# All small result tables load through ONE function — because Phase
+# 8's Pipeline tab can CHANGE those tables, and after a run the app
+# must be able to reload them without restarting. State that can be
+# refreshed lives in a function; the server keeps it in a reactiveVal.
+load_small_tables <- function(con) {
+  monthly <- dbGetQuery(con, "SELECT * FROM monthly_trends") |>
+    as_tibble() |>
+    mutate(month_date = as.Date(paste0(year_month, "-01")))
 
-signals <- dbGetQuery(con, "SELECT * FROM signal_stats") |>
-  as_tibble() |>
-  mutate(evans_signal = as.logical(evans_signal))  # SQLite stores 0/1
+  signals <- dbGetQuery(con, "SELECT * FROM signal_stats") |>
+    as_tibble() |>
+    mutate(evans_signal = as.logical(evans_signal))  # SQLite stores 0/1
 
-# narrative_terms stores rates but not the other-families denominators
-# the scatter needs — recover them from what IS stored:
-#   per_10k = 1e4 * n / family_total   =>   family_total = 1e4*n/per_10k
-terms <- dbGetQuery(con, "SELECT * FROM narrative_terms") |> as_tibble()
-fam_tot <- terms |>
-  mutate(family_total = round(1e4 * n / per_10k)) |>
-  group_by(device_family) |>
-  summarise(family_total = max(family_total), .groups = "drop")
-grand_total <- sum(fam_tot$family_total)
-terms <- terms |>
-  left_join(fam_tot, by = "device_family") |>
-  group_by(word) |>
-  mutate(word_total = sum(n)) |>
-  ungroup() |>
-  mutate(n_others = word_total - n,
-         others_total = grand_total - family_total)
+  # narrative_terms stores rates but not the other-families
+  # denominators the scatter needs — recover them from what IS stored:
+  #   per_10k = 1e4 * n / family_total  =>  family_total = 1e4*n/per_10k
+  terms <- dbGetQuery(con, "SELECT * FROM narrative_terms") |> as_tibble()
+  fam_tot <- terms |>
+    mutate(family_total = round(1e4 * n / per_10k)) |>
+    group_by(device_family) |>
+    summarise(family_total = max(family_total), .groups = "drop")
+  grand_total <- sum(fam_tot$family_total)
+  terms <- terms |>
+    left_join(fam_tot, by = "device_family") |>
+    group_by(word) |>
+    mutate(word_total = sum(n)) |>
+    ungroup() |>
+    mutate(n_others = word_total - n,
+           others_total = grand_total - family_total)
 
-FAMILIES <- sort(unique(monthly$device_family))
-n_reports <- dbGetQuery(con,
-  "SELECT COUNT(*) AS n FROM clean_events")$n
+  list(monthly = monthly, signals = signals, terms = terms,
+       n_reports = dbGetQuery(con,
+         "SELECT COUNT(*) AS n FROM clean_events")$n)
+}
+
+.d0 <- load_small_tables(con)          # first load, at startup
+FAMILIES <- sort(unique(.d0$monthly$device_family))
+n_reports <- .d0$n_reports
+
+# The stages the Pipeline tab offers. fetch is deliberately absent:
+# a 30-minute credentialed download does not belong behind a button
+# that freezes the browser — it stays Terminal territory (the tab
+# says so). probe is offered (it's the free look) with a time note.
+MC_STAGES <- c("probe", "load", "clean", "trend", "signals",
+               "terms", "test", "report")
 
 trunc_col <- function(x, n = 60) str_trunc(coalesce(x, ""), n)
 
@@ -162,6 +183,70 @@ ui <- navbarPage(
     )
   ),
 
+  tabPanel("Pipeline",
+    sidebarLayout(
+      sidebarPanel(width = 3,
+        checkboxGroupInput("mc_stages", "Stages to run",
+                           choices = MC_STAGES,
+                           selected = c("trend", "signals", "test")),
+        actionButton("mc_run", "Run selected stages",
+                     class = "btn-primary"),
+        helpText("Stages run in canonical order regardless of tick
+                 order. The browser WAITS while R works (one session,
+                 one lane): terms ~45s, probe ~1 min, report ~20s.
+                 The full fetch is deliberately not offered here —
+                 30+ minutes and an API key belong in the Terminal
+                 (`Rscript run_pipeline.R all`)."),
+        hr(),
+        actionButton("mc_reload", "Reload results into dashboard"),
+        helpText("After a run changes the tables, this refreshes the
+                 Trends/Signals/Narratives tabs without restarting.")
+      ),
+      mainPanel(width = 9,
+        h4("Run log"),
+        verbatimTextOutput("mc_log", placeholder = TRUE),
+        h4("Timings"),
+        tableOutput("mc_timings")
+      )
+    )
+  ),
+
+  tabPanel("Query",
+    sidebarLayout(
+      sidebarPanel(width = 3,
+        helpText("Read-only by construction: only a single SELECT (or
+                 WITH) runs, on a connection that cannot write —
+                 two independent locks. Results cap at 200 rows."),
+        h5("Tables"),
+        verbatimTextOutput("q_schema", placeholder = TRUE)
+      ),
+      mainPanel(width = 9,
+        textAreaInput("q_sql", label = NULL, rows = 5, width = "100%",
+          value = paste("SELECT device_family, COUNT(*) AS reports",
+                        "FROM clean_events",
+                        "GROUP BY device_family ORDER BY reports DESC")),
+        actionButton("q_run", "Run query", class = "btn-primary"),
+        br(), br(),
+        uiOutput("q_status"),
+        DTOutput("q_result")
+      )
+    )
+  ),
+
+  tabPanel("Report",
+    fluidRow(column(8, offset = 2,
+      h3("The executable report"),
+      p("Renders report/orthowatch_report.qmd against the CURRENT
+        database — every number recomputed — and publishes the
+        self-contained HTML to docs/. Takes ~20 seconds; the browser
+        waits while it works."),
+      actionButton("rp_render", "Render & publish report",
+                   class = "btn-primary"),
+      br(), br(),
+      uiOutput("rp_status")
+    ))
+  ),
+
   tabPanel("About",
     fluidRow(column(8, offset = 2,
       h4("How this app is built"),
@@ -183,10 +268,16 @@ ui <- navbarPage(
 # ── Server: what happens when the user interacts ─────────────────────
 server <- function(input, output, session) {
 
+  # The dashboard's data, as refreshable state: DATA() reads it,
+  # DATA(load_small_tables(con)) replaces it and every output that
+  # read it recomputes — the same spreadsheet model, applied to the
+  # app's own tables.
+  DATA <- reactiveVal(.d0)
+
   # ---- Trends tab ----------------------------------------------------
   output$trend_plot <- renderPlotly({
     req(input$trend_families)              # wait until >= 1 family ticked
-    monthly |>
+    DATA()$monthly |>
       filter(device_family %in% input$trend_families) |>
       plot_trends_interactive(source = "trends")
   })
@@ -225,7 +316,7 @@ server <- function(input, output, session) {
 
   # ---- Signals tab ---------------------------------------------------
   output$signal_plot <- renderPlotly({
-    plot_top_signals_interactive(signals, top_n = input$sig_top_n,
+    plot_top_signals_interactive(DATA()$signals, top_n = input$sig_top_n,
                                  source = "signals")
   })
 
@@ -255,7 +346,7 @@ server <- function(input, output, session) {
 
   # ---- Narratives tab ------------------------------------------------
   output$term_plot <- renderPlotly({
-    plot_term_scatter_interactive(terms,
+    plot_term_scatter_interactive(DATA()$terms,
                                   min_per_10k = input$term_min_rate,
                                   source = "terms")
   })
@@ -282,6 +373,116 @@ server <- function(input, output, session) {
     req(nrow(rows) > 0)
     tagList(lapply(rows$narrative, function(x)
       tags$blockquote(style = "font-size: 90%;", str_trunc(x, 600))))
+  })
+
+  # ---- Pipeline tab (Mission Control) -------------------------------
+  mc_log     <- reactiveVal("(no run yet)")
+  mc_timings <- reactiveVal(NULL)
+
+  observeEvent(input$mc_run, {
+    req(input$mc_stages)
+    # Canonical order, exactly like the runner: the UI wraps the
+    # pipeline, so it inherits the pipeline's rules for free.
+    stages <- names(PIPELINE_STAGES)[names(PIPELINE_STAGES) %in%
+                                       input$mc_stages]
+    cfg <- pipeline_config()
+    # The app lives in app/; the stages assume the project root.
+    owd <- setwd(".."); on.exit(setwd(owd), add = TRUE)
+
+    lines <- character(); times <- data.frame()
+    withProgress(message = "Pipeline running", value = 0, {
+      for (i in seq_along(stages)) {
+        s <- stages[i]
+        incProgress(1 / length(stages), detail = s)
+        t0 <- Sys.time()
+        # Capture each stage's message() lines into the on-screen log.
+        ok <- tryCatch({
+          withCallingHandlers(
+            PIPELINE_STAGES[[s]](cfg),
+            message = function(m) {
+              lines <<- c(lines, sub("\n$", "", conditionMessage(m)))
+              invokeRestart("muffleMessage")
+            })
+          TRUE
+        }, error = function(e) {
+          lines <<- c(lines, paste0("ERROR in ", s, ": ",
+                                    conditionMessage(e)))
+          FALSE
+        })
+        times <- rbind(times, data.frame(
+          stage = s,
+          seconds = round(as.numeric(difftime(Sys.time(), t0,
+                                              units = "secs")), 1)))
+        if (!ok) break                      # stop-on-error, like the runner
+      }
+    })
+    mc_log(paste(lines, collapse = "\n"))
+    mc_timings(times)
+  })
+
+  observeEvent(input$mc_reload, {
+    DATA(load_small_tables(con))            # the refresh: state swaps,
+    showNotification("Dashboard tables reloaded.", type = "message")
+  })                                        # dependents recompute
+
+  output$mc_log     <- renderText(mc_log())
+  output$mc_timings <- renderTable(mc_timings())
+
+  # ---- Query tab (read-only console) --------------------------------
+  output$q_schema <- renderText({
+    tabs <- dbListTables(con)
+    paste(vapply(tabs, function(tb) {
+      cols <- dbGetQuery(con, paste0("PRAGMA table_info(", tb, ")"))$name
+      paste0(tb, "\n  ", paste(cols, collapse = ", "))
+    }, character(1)), collapse = "\n\n")
+  })
+
+  q_out <- eventReactive(input$q_run, {
+    # Both locks live in R/console.R - tested, not hoped.
+    tryCatch(
+      list(ok = TRUE,
+           data = run_readonly_query(DB_PATH, input$q_sql,
+                                     max_rows = 200)),
+      error = function(e) list(ok = FALSE, msg = conditionMessage(e)))
+  })
+
+  output$q_status <- renderUI({
+    r <- q_out()
+    if (!r$ok)
+      return(tags$p(style = "color: #b30000;",
+                    strong("Refused: "), r$msg))
+    trunc <- isTRUE(attr(r$data, "truncated"))
+    tags$p(sprintf("%d row(s)%s.", nrow(r$data),
+                   if (trunc) " (capped at 200)" else ""))
+  })
+
+  output$q_result <- renderDT({
+    r <- q_out(); req(r$ok)
+    datatable(r$data, options = list(pageLength = 10, dom = "tp",
+                                     scrollX = TRUE), rownames = FALSE)
+  })
+
+  # ---- Report tab ----------------------------------------------------
+  rp_msg <- reactiveVal(NULL)
+  observeEvent(input$rp_render, {
+    owd <- setwd(".."); on.exit(setwd(owd), add = TRUE)
+    withProgress(message = "Rendering report", value = 0.4, {
+      res <- tryCatch({ stage_report(pipeline_config()); TRUE },
+                      error = function(e) conditionMessage(e))
+    })
+    rp_msg(res)
+  })
+  output$rp_status <- renderUI({
+    r <- rp_msg(); req(!is.null(r))
+    if (isTRUE(r))
+      tagList(
+        tags$p(style = "color: #1a7a1a;", strong("Rendered & published. "),
+               "Fresh copy at docs/orthowatch_report.html — live at the
+                project's Pages URL after the next commit+push."),
+        tags$a(href = "https://akannan2987.github.io/orthowatch/orthowatch_report.html",
+               target = "_blank", "Open the live report (last published version)"))
+    else
+      tags$p(style = "color: #b30000;", strong("Render failed: "), r)
   })
 }
 

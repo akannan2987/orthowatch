@@ -436,3 +436,35 @@ that the same inputs give the same outputs: same raw files → same
 database → same tables and figures → same report, with the one
 outside-our-control rung stated honestly (a fresh fetch may differ,
 because MAUDE itself revises).
+
+## The workbench words (added in Phase 8)
+
+**Workbench** — an app that *runs the work*, not just displays it: a
+dashboard plus the controls (run stages, query, render) that operate
+the system underneath.
+
+**Blocking / synchronous** — while one R session computes, it cannot
+also serve clicks: the browser waits. A Shiny session is a
+single-lane bridge; honest tools show progress and state costs
+instead of pretending.
+
+**Background / asynchronous** — the second lane: a separate worker
+process runs the long job while the UI stays live (`future` +
+`promises` in Shiny). The production pattern for long stages —
+roadmap here, by choice.
+
+**Defense in depth** — two independent safeguards where one would
+do, so a bug in either still leaves you protected. The query
+console: a text validator AND a read-only connection.
+
+**Read-only connection** — a database connection opened with a flag
+(SQLite's `SQLITE_RO`) that makes writes impossible at the database
+level, regardless of what SQL reaches it.
+
+**SQL console** — a box that runs typed SQL against the database and
+shows the result. Powerful and hazardous — hence the two locks.
+
+**Application state / refresh** — data an app holds in memory (the
+loaded tables). When the ground truth changes (a pipeline run), the
+state must be deliberately swapped — here a `reactiveVal` refilled
+by a Reload button, so every dependent output recomputes.

@@ -232,6 +232,23 @@ here:
 (one self-contained page: the data, the three analyses, the honest
 caveats, and how the report made itself).
 
+### Phase 8 — Mission Control: the app becomes a workbench
+
+The dashboard grows three tabs and becomes the full instrument:
+**Pipeline** (tick stages, press Run — the same tested stage
+functions, with live log and timings), **Query** (a SQL console
+that is read-only *by construction*: a tested validator AND a
+read-only connection — two independent locks), and **Report**
+(render + publish on a button). The UI wraps the pipeline — no
+logic moved, none duplicated; 63 tests.
+
+![Mission Control](figures/mission_control.png)
+
+The long fetch deliberately stays in the Terminal (a 30-minute
+credentialed download doesn't belong behind a button that freezes a
+browser), and true background execution is the named roadmap item —
+design decisions documented, not hidden.
+
 ## Build log
 
 | # | Document | Status |
@@ -246,7 +263,8 @@ caveats, and how the report made itself).
 | 5 | [Text mining the narratives](docs/06-phase-5-text-mining.md) | ✅ |
 | 6 | [Interactive dashboard (Shiny)](docs/07-phase-6-shiny-dashboard.md) | ✅ |
 | 7 | [Reproducible report & one-command pipeline](docs/08-phase-7-pipeline-report.md) | ✅ |
-| 8 | Polish & release notes | planned |
+| 8 | [Mission Control — the app suite](docs/09-phase-8-mission-control.md) | ✅ |
+| 9 | Polish & release notes | planned |
 
 ## Bumps hit along the way (kept on purpose)
 
@@ -351,6 +369,7 @@ orthowatch/
 │
 ├── R/                             ← the engine: reusable, tested functions
 │   ├── clean_events.R             ← cleaning rules (Phase 2)
+│   ├── console.R                  ← read-only query engine (Phase 8)
 │   ├── trending.R                 ← control-limit trending (Phase 3)
 │   ├── signal_detection.R         ← PRR/ROR disproportionality (Phase 4)
 │   └── text_mining.R              ← narrative tokenization + term stats (Phase 5)
@@ -372,6 +391,7 @@ orthowatch/
 ├── tests/                         ← automated checks (Phase 4)
 │   ├── run_tests.R                ← one command runs the whole suite
 │   └── testthat/
+│       ├── test-console.R
 │       ├── test-interactive_meta.R
 │       ├── test-pipeline.R
 │       ├── test-signal_detection.R
