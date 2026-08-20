@@ -205,3 +205,55 @@ p6 <- ggplot(steps, aes(y = y)) +
         plot.title.position = "plot")
 ggsave("docs/img/text_mining_pipeline.png", p6, width = 8.4, height = 5.4, dpi = 150)
 cat("text-mining pipeline diagram written\n")
+
+# ── 7. Shiny reactivity: the spreadsheet-recalculation model (Phase 6)
+boxes <- tibble(
+  x = rep(c(1.4, 4.2, 7.0, 9.8), 2),
+  y = rep(c(2.1, 0.7), each = 4),
+  w = 2.5,
+  title = c("User changes an input",
+            "input$trend_families",
+            "renderPlotly re-runs",
+            "Browser updates",
+            "User clicks a point",
+            'event_data("plotly_click")',
+            "renderDT re-runs",
+            "Table appears"),
+  body = c("un-ticks a family\ncheckbox",
+           "the value updates;\neverything that READ it\nis now out of date",
+           "filters the data,\nredraws the chart",
+           "new chart, no page\nreload",
+           "on the trends chart",
+           "delivers the point's\ncustomdata:\n'Hip prosthesis|2020-08'",
+           "parameterized SQL pulls\nthat month's reports",
+           "drill-down below\nthe chart")
+)
+p7 <- ggplot(boxes) +
+  geom_rect(aes(xmin = x - w/2, xmax = x + w/2,
+                ymin = y - 0.42, ymax = y + 0.42),
+            fill = rep(c("#fff3e0", "#e8f0f8", "#e8f0f8", "#e5f2e5"), 2),
+            color = "grey40", linewidth = 0.4) +
+  geom_text(aes(x = x, y = y + 0.26, label = title),
+            size = 3.1, fontface = "bold") +
+  geom_text(aes(x = x, y = y - 0.10, label = body),
+            size = 2.6, color = "grey25", lineheight = 0.95) +
+  annotate("segment",
+           x    = rep(c(2.68, 5.48, 8.28), 2),
+           xend = rep(c(2.92, 5.72, 8.52), 2),
+           y    = rep(c(2.1, 0.7), each = 3),
+           yend = rep(c(2.1, 0.7), each = 3),
+           arrow = arrow(length = unit(0.16, "cm")), color = "grey40") +
+  annotate("text", x = 0.15, y = 2.66, label = "Chain 1: an input changes",
+           size = 3.0, fontface = "italic", color = "grey35", hjust = 0) +
+  annotate("text", x = 0.15, y = 1.26, label = "Chain 2: a click lands",
+           size = 3.0, fontface = "italic", color = "grey35", hjust = 0) +
+  scale_x_continuous(limits = c(0, 11.2)) +
+  scale_y_continuous(limits = c(0.1, 2.8)) +
+  labs(title = "Shiny reactivity: outputs recompute when their inputs change",
+       subtitle = "Exactly a spreadsheet: change cell A1 and every formula that reads A1 recalculates — automatically, and only those.\nTop chain: the family filter. Bottom chain: the click drill-down. Nothing polls, nothing refreshes; dependencies do the work.") +
+  theme_void(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(color = "grey30", size = 9.5),
+        plot.title.position = "plot")
+ggsave("docs/img/shiny_reactivity.png", p7, width = 9.6, height = 3.8, dpi = 150)
+cat("shiny reactivity diagram written\n")

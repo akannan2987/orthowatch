@@ -122,7 +122,7 @@ plot_distinctive_terms <- function(dist, top_n = 12) {
 }
 
 
-plot_term_scatter_interactive <- function(dist, min_per_10k = 1) {
+plot_term_scatter_interactive <- function(dist, min_per_10k = 1, source = "terms") {
   # The interactive earns its keep here for a concrete reason: this
   # scatter has hundreds of points, and a static version could label
   # only a handful before turning into ink soup. Hover labels ALL of
@@ -143,15 +143,17 @@ plot_term_scatter_interactive <- function(dist, min_per_10k = 1) {
       rate_others_10k = 1e4 * (n_others + 0.5) / (others_total + 1),
       tooltip = sprintf(
         "%s\n\"%s\"\n%.1f per 10k words here vs %.2f elsewhere\nratio %.1fx  (n = %d)",
-        device_family, word, per_10k, rate_others_10k, ratio, n)
+        device_family, word, per_10k, rate_others_10k, ratio, n),
+      click_id = paste(device_family, word, sep = "|")
     )
+  if (nrow(d) == 0) stop("no terms at or above min_per_10k - lower the threshold")
 
   p <- suppressWarnings(
     ggplot(d, aes(x = per_10k, y = rate_others_10k)) +
       geom_abline(slope = 1, intercept = 0,
                   linetype = "dashed", color = "grey50") +
-      geom_point(aes(text = tooltip), alpha = 0.45,
-                 color = "steelblue4", size = 1.3) +
+      geom_point(aes(text = tooltip, customdata = click_id),
+                 alpha = 0.45, color = "steelblue4", size = 1.3) +
       scale_x_log10() + scale_y_log10() +
       facet_wrap(~ device_family, ncol = 2) +
       labs(title = "Narrative vocabulary, family vs. everyone else (interactive)",
@@ -159,6 +161,6 @@ plot_term_scatter_interactive <- function(dist, min_per_10k = 1) {
            y = "per 10,000 words in all other families") +
       theme_minimal(base_size = 11)
   )
-  plotly::ggplotly(p, tooltip = "text") |>
+  plotly::ggplotly(p, tooltip = "text", source = source) |>
     plotly::config(displaylogo = FALSE)
 }

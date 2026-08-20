@@ -195,6 +195,23 @@ resurfacing device class — the text-side counterpart of Phase 4's
 metal-degradation signals. Narrative words are leads from unverified
 reporter text, never findings about devices.
 
+### Phase 6 — The dashboard: from artifacts to instrument
+
+The three interactive charts and five database tables assemble into
+a Shiny app — the same tested functions, now with what static pages
+can't do: click any flagged month, signal, or word and the app
+queries the database live for the reports behind it (parameterized
+SQL, guarded reactivity, 42 tests). Below: a +11.9-sigma spinal
+month, hovered, clicked, and answered.
+
+![The OrthoWatch dashboard](figures/dashboard.png)
+
+The app runs locally (`shiny::runApp("app")`) — a live R server per
+user is exactly what GitHub Pages can't host, which is why the
+published charts above are static-interactive and the dashboard is a
+picture. Deployment (e.g. shinyapps.io) is a documented roadmap
+item.
+
 ## Build log
 
 | # | Document | Status |
@@ -207,7 +224,7 @@ reporter text, never findings about devices.
 | 3 | [Complaint trending](docs/04-phase-3-trending.md) | ✅ |
 | 4 | [Signal detection + automated tests](docs/05-phase-4-signal-detection.md) | ✅ |
 | 5 | [Text mining the narratives](docs/06-phase-5-text-mining.md) | ✅ |
-| 6 | Interactive dashboard (Shiny) | planned |
+| 6 | [Interactive dashboard (Shiny)](docs/07-phase-6-shiny-dashboard.md) | ✅ |
 | 7 | Reproducible report & one-command pipeline | planned |
 | 8 | Polish & release notes | planned |
 
@@ -228,6 +245,13 @@ Phase 1 guide's troubleshooting section:
   hit). The script now identifies itself by name on every request,
   uses a free registered access key, and waits-and-retries politely
   when refused.
+- **A test fixture drifted from the real schema.** The dashboard's
+  month drill-down was validated headlessly against a synthetic
+  database — built from memory, with a `date_received` column the
+  real cleaned table doesn't have (cleaning stores the derived
+  `year_month` instead). The test passed; the first real click
+  failed. Lesson kept: fixtures must be built from the same code or
+  schema as production, never from recollection.
 - **Arithmetic can silently overflow.** R stores counts as 32-bit
   integers (max ≈ 2.1 billion); the chi-square denominator multiplies
   four of them straight past that ceiling into NA. The project's unit
@@ -323,10 +347,13 @@ orthowatch/
 ├── tests/                         ← automated checks (Phase 4)
 │   ├── run_tests.R                ← one command runs the whole suite
 │   └── testthat/
+│       ├── test-interactive_meta.R
 │       ├── test-signal_detection.R
 │       ├── test-text_mining.R
 │       └── test-trending.R
-├── app/                           ← Shiny dashboard (arrives Phase 6)
+├── app/                           ← the Shiny dashboard (Phase 6)
+│   └── app.R                      ← UI + server, one commented file
+│                                    run: shiny::runApp("app")
 └── report/                        ← Quarto report (arrives Phase 7)
 ```
 

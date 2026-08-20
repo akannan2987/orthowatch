@@ -350,3 +350,44 @@ reason counting guides but reading decides.
 
 **Bigram** — a two-word token ("metal debris"); useful when single
 words lose the phrase. A documented extension, not used in the core.
+
+## The dashboard words (added in Phase 6)
+
+**Shiny** — R's framework for web applications: a web page with a
+live R session behind it, recomputing whatever the user's
+interactions require. Contrast with the published plotly pages,
+which carry their JavaScript with them and need no server.
+
+**UI / server** — every Shiny app's two halves: `ui` declares what
+exists on the page; `server` declares how each output is computed
+from the inputs. Shared names ("trend_families") are the wiring.
+
+**Reactivity** — the spreadsheet model: outputs re-run automatically
+when anything they read changes. You write the recipe once; the
+dependencies do the scheduling.
+
+**input$ / output$** — the server's two doorways: `input$x` reads the
+current value of the UI control named "x"; assigning
+`output$y <- render...` fills the UI area named "y".
+
+**event_data()** — plotly's bridge into Shiny: returns the details of
+the last click on a named chart, including each point's `customdata`
+— in this project, a `"family|key"` string that maps a click back to
+data.
+
+**Parameterized SQL** — queries with `?` placeholders where values
+travel separately from the SQL text. The standard defense against
+SQL injection (a value can never rewrite the query).
+
+**localhost / port** — `127.0.0.1` ("localhost") is this very
+machine; a port is one of its numbered doors, letting many network
+programs coexist. `Listening on http://127.0.0.1:4321` = "your
+laptop, door 4321, nothing on the internet."
+
+**DT / data table** — the DT package renders data frames as
+interactive browser tables (sort, search, page) — used for the
+drill-downs.
+
+**Deploy** — putting an app where others reach it. A Shiny app needs
+a server that runs R (e.g. shinyapps.io's free tier) — a roadmap
+item here, not a phase.

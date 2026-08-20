@@ -124,7 +124,11 @@ plot_trends <- function(monthly_limits, ncol = 1) {
 }
 
 
-plot_trends_interactive <- function(monthly_limits) {
+plot_trends_interactive <- function(monthly_limits, source = "trends") {
+  # `source` names this chart for Shiny click events (Phase 6): the
+  # dashboard asks "what was clicked on chart <source>?", and the
+  # customdata attached to each point answers "which family, which
+  # month" unambiguously — even across facets.
   # The interactive twin of plot_trends(): the SAME control chart, plus
   # what a browser adds — hover a dot for its exact numbers, drag a box
   # to zoom (double-click to reset), click legend entries to hide/show
@@ -137,11 +141,14 @@ plot_trends_interactive <- function(monthly_limits) {
   requireNamespace("plotly", quietly = TRUE)
 
   df <- monthly_limits |>
-    mutate(tooltip = sprintf(
-      "%s\n%s\n%d reports (average %.0f)\n%s (%+.1f sd from average)",
-      device_family, format(month_date, "%b %Y"), n, center,
-      status, (n - center) / sigma
-    ))
+    mutate(
+      tooltip = sprintf(
+        "%s\n%s\n%d reports (average %.0f)\n%s (%+.1f sd from average)",
+        device_family, format(month_date, "%b %Y"), n, center,
+        status, (n - center) / sigma
+      ),
+      click_id = paste(device_family, format(month_date, "%Y-%m"), sep = "|")
+    )
 
   # Mirrors plot_trends() with one addition: a text aesthetic carrying
   # the tooltip. ggplot itself doesn't know "text" (hence the
@@ -151,7 +158,8 @@ plot_trends_interactive <- function(monthly_limits) {
       geom_ribbon(aes(ymin = lcl, ymax = ucl), fill = "grey88") +
       geom_line(aes(y = center), linetype = "dashed", color = "grey40") +
       geom_line(color = "steelblue4") +
-      geom_point(aes(color = status, text = tooltip), size = 1.6) +
+      geom_point(aes(color = status, text = tooltip,
+                     customdata = click_id), size = 1.6) +
       scale_color_manual(values = c("above limit"   = "red3",
                                     "below limit"   = "darkorange2",
                                     "within limits" = "grey30")) +
@@ -161,6 +169,6 @@ plot_trends_interactive <- function(monthly_limits) {
       theme_minimal(base_size = 11)
   )
 
-  plotly::ggplotly(p, tooltip = "text") |>
+  plotly::ggplotly(p, tooltip = "text", source = source) |>
     plotly::config(displaylogo = FALSE)
 }

@@ -118,6 +118,7 @@ plot_top_signals <- function(stats, top_n = 5) {
     slice_max(prr, n = top_n) |>
     ungroup() |>
     mutate(label = str_trunc(product_problem, 42))
+  if (nrow(top) == 0) stop("no Evans signals to plot - nothing passes PRR>=2, chi2>=4, a>=3")
 
   ggplot(top, aes(x = ror, y = reorder(label, ror))) +
     geom_vline(xintercept = 1, linetype = "dashed", color = "grey50") +
@@ -138,7 +139,7 @@ plot_top_signals <- function(stats, top_n = 5) {
 }
 
 
-plot_top_signals_interactive <- function(stats, top_n = 5) {
+plot_top_signals_interactive <- function(stats, top_n = 5, source = "signals") {
   # The interactive twin of plot_top_signals() — and here interactivity
   # fixes a real limitation of the static version: paper truncates
   # problem names to fit the axis, and hides the counts behind each
@@ -154,6 +155,7 @@ plot_top_signals_interactive <- function(stats, top_n = 5) {
     ungroup() |>
     mutate(
       label = str_trunc(product_problem, 42),
+      click_id = paste(device_family, product_problem, sep = "|"),
       tooltip = sprintf(
         paste0("%s\n%s\n",
                "a=%d  b=%d  c=%d  d=%d\n",
@@ -163,13 +165,15 @@ plot_top_signals_interactive <- function(stats, top_n = 5) {
         a, b, c, d, prr, chi2, ror, ror_lo, ror_hi
       )
     )
+  if (nrow(top) == 0) stop("no Evans signals to plot - nothing passes PRR>=2, chi2>=4, a>=3")
 
   p <- suppressWarnings(
     ggplot(top, aes(x = ror, y = reorder(label, ror))) +
       geom_vline(xintercept = 1, linetype = "dashed", color = "grey50") +
       geom_errorbar(aes(xmin = ror_lo, xmax = ror_hi),
                     orientation = "y", width = 0.2, color = "grey40") +
-      geom_point(aes(text = tooltip), color = "red3", size = 2.2) +
+      geom_point(aes(text = tooltip, customdata = click_id),
+                 color = "red3", size = 2.2) +
       scale_x_log10() +
       facet_wrap(~ device_family, scales = "free_y", ncol = 1) +
       labs(title = "Strongest disproportionality signals (interactive)",
@@ -177,6 +181,6 @@ plot_top_signals_interactive <- function(stats, top_n = 5) {
       theme_minimal(base_size = 11)
   )
 
-  plotly::ggplotly(p, tooltip = "text") |>
+  plotly::ggplotly(p, tooltip = "text", source = source) |>
     plotly::config(displaylogo = FALSE)
 }
