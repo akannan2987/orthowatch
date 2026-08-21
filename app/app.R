@@ -42,10 +42,16 @@ source("../R/trending.R")
 source("../R/signal_detection.R")
 source("../R/text_mining.R")
 source("../R/console.R")
+source("../R/run_history.R")
 source("../pipeline/config.R")
 source("../pipeline/stages.R")
 
 DB_PATH <- "../data/processed/orthowatch.db"
+# Absolute from the start: handlers that temporarily change directory
+# (pipeline, ingest, report) can then reach the database - and the
+# ledger - from anywhere. Relative paths are for humans; long-lived
+# handles want absolutes.
+DB_PATH <- normalizePath(DB_PATH, mustWork = FALSE)
 
 # ── Global section: runs ONCE when the app starts ────────────────────
 con <- dbConnect(RSQLite::SQLite(), DB_PATH)
@@ -132,6 +138,7 @@ ui <- navbarPage(
         charts), device–problem associations (PRR/ROR), and narrative
         patterns (text mining).",
         format(n_reports, big.mark = ","), length(FAMILIES))),
+      uiOutput("provenance"),
       tags$ul(
         tags$li(strong("Trends"), " — monthly reports with 3-sigma
           control limits; click any point for that month's reports."),
@@ -258,14 +265,22 @@ ui <- navbarPage(
                  (`Rscript run_pipeline.R all`)."),
         hr(),
         actionButton("mc_reload", "Reload results into dashboard"),
-        helpText("After a run changes the tables, this refreshes the
-                 Trends/Signals/Narratives tabs without restarting.")
+        helpText("Runs from this tab refresh the dashboard
+                 automatically. Use this button when the database
+                 changed OUTSIDE the app (a Terminal pipeline run).")
       ),
       mainPanel(width = 9,
         h4("Run log"),
         verbatimTextOutput("mc_log", placeholder = TRUE),
         h4("Timings"),
-        tableOutput("mc_timings")
+        tableOutput("mc_timings"),
+        hr(),
+        h4("Run history"),
+        p(class = "text-muted", "The ledger: every probe, fetch,
+          pipeline run, and report render — including failures.
+          Stored in the database (table run_history), so it survives
+          restarts and is queryable from the Query tab."),
+        DTOutput("mc_history")
       )
     )
   ),
@@ -359,6 +374,27 @@ ui <- navbarPage(
 
 # ── Server: what happens when the user interacts ─────────────────────
 server <- function(input, output, session) {
+
+  # The ledger, as refreshable state - reread after every recorded run.
+  RUNS <- reactiveVal(read_run_history(DB_PATH))
+
+  output$provenance <- renderUI({
+    h <- RUNS()
+    piped <- h[h$kind %in% c("pipeline", "fetch") & h$outcome == "ok", ]
+    if (nrow(piped) == 0)
+      return(tags$p(class = "text-muted", em("No recorded runs yet —
+        results below are from the database as found at startup.")))
+    r <- piped[1, ]
+    tags$p(class = "text-muted", em(sprintf(
+      "Results from: %s (%s) — %s, %s.",
+      r$kind, r$detail, r$outcome, r$run_at)))
+  })
+
+  output$mc_history <- renderDT({
+    h <- RUNS()
+    datatable(h, rownames = FALSE, filter = "top",
+              options = list(pageLength = 5, dom = "tp", scrollX = TRUE))
+  })
 
   # The dashboard's data, as refreshable state: DATA() reads it,
   # DATA(load_small_tables(con)) replaces it and every output that
@@ -510,6 +546,21 @@ server <- function(input, output, session) {
     })
     mc_log(paste(lines, collapse = "\n"))
     mc_timings(times)
+
+    # The ledger line for this run - failures included, honestly.
+    record_run(DB_PATH, "pipeline", paste(stages, collapse = ", "),
+               if (ok) "ok" else "error",
+               summary = paste(lines[grepl("^\\[", lines)], collapse = " | "),
+               seconds = sum(times$seconds))
+    RUNS(read_run_history(DB_PATH))
+
+    # AUTO-refresh: a run that changed the tables refreshes the
+    # dashboard by itself (the Reload button remains for db changes
+    # made OUTSIDE the app, e.g. a Terminal pipeline run).
+    if (ok) {
+      DATA(load_small_tables(con))
+      showNotification("Run recorded; dashboard refreshed.", type = "message")
+    }
   })
 
   observeEvent(input$mc_reload, {
@@ -588,6 +639,17 @@ server <- function(input, output, session) {
                                                       conditionMessage(e))))
     })
     ing_log(paste(lines, collapse = "\n"))
+
+    scope <- sprintf("%s | %s-%s%s",
+                     paste(input$ing_families, collapse = ","),
+                     input$ing_y0, input$ing_y1,
+                     if (nzchar(trimws(input$ing_search)))
+                       paste0(" | ", input$ing_search) else "")
+    failed <- any(grepl("^ERROR", lines))
+    record_run(DB_PATH, if (probe) "probe" else "fetch", scope,
+               if (failed) "error" else "ok",
+               summary = paste(utils::tail(lines, 3), collapse = " | "))
+    RUNS(read_run_history(DB_PATH))
   }
   observeEvent(input$ing_probe, run_scoped(probe = TRUE))
   observeEvent(input$ing_fetch, run_scoped(probe = FALSE))
@@ -655,6 +717,11 @@ server <- function(input, output, session) {
                       error = function(e) conditionMessage(e))
     })
     rp_msg(res)
+    record_run(DB_PATH, "report", "render + publish",
+               if (isTRUE(res)) "ok" else "error",
+               summary = if (isTRUE(res)) "docs/orthowatch_report.html"
+                         else as.character(res))
+    RUNS(read_run_history(DB_PATH))
   })
   output$rp_status <- renderUI({
     r <- rp_msg(); req(!is.null(r))

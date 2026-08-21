@@ -374,3 +374,43 @@ p10 <- ggplot(vb) +
         plot.title.position = "plot")
 ggsave("docs/img/validate_before_network.png", p10, width = 9.4, height = 2.9, dpi = 150)
 cat("validation diagram written\n")
+
+# ── 11. State vs ledger (Phase 8c) ───────────────────────────────────
+sl <- tibble(
+  x = c(2.3, 7.7), y = 2.05,
+  lab = c("STATE\nthe five result tables\n(your account BALANCE:\nwhat things are now)",
+          "LEDGER\nrun_history\n(your bank STATEMENT:\nevery event that made it so)"),
+  fill = c("#e8f0f8", "#fff3e0"))
+p11 <- ggplot(sl) +
+  geom_rect(aes(xmin = x - 1.85, xmax = x + 1.85, ymin = y - 0.75,
+                ymax = y + 0.75), fill = sl$fill, color = "grey40",
+            linewidth = 0.4) +
+  geom_text(aes(x = x, y = y, label = lab), size = 3.1, lineheight = 1.05) +
+  annotate("rect", xmin = 3.6, xmax = 6.4, ymin = 3.32, ymax = 3.95,
+           fill = "#e5f2e5", color = "grey40", linewidth = 0.4) +
+  annotate("text", x = 5, y = 3.63, size = 3.1, lineheight = 1.0,
+           label = "a run\n(fetch / pipeline / report)") +
+  annotate("segment", x = 4.4, xend = 2.9, y = 3.28, yend = 2.9,
+           arrow = arrow(length = unit(0.16, "cm")), color = "grey40") +
+  annotate("segment", x = 5.6, xend = 7.1, y = 3.28, yend = 2.9,
+           arrow = arrow(length = unit(0.16, "cm")), color = "grey40") +
+  annotate("text", x = 2.9, y = 3.18, size = 2.7, color = "grey35",
+           hjust = 1, label = "updates the state ") +
+  annotate("text", x = 7.15, y = 3.18, size = 2.7, color = "grey35",
+           hjust = 0, label = " appends one line (even failures)") +
+  annotate("segment", x = 6.6, xend = 5.6, y = 1.05, yend = 0.62,
+           arrow = arrow(length = unit(0.16, "cm")), color = "grey45",
+           linetype = "dashed") +
+  annotate("text", x = 5.0, y = 0.42, size = 2.9, color = "grey30",
+           fontface = "italic",
+           label = "provenance = reading the ledger's latest line:\n\"Results from: pipeline (load, clean, trend...) — ok, 2026-08-21 11:35\"") +
+  scale_x_continuous(limits = c(0.2, 9.8)) +
+  scale_y_continuous(limits = c(0.05, 4.3)) +
+  labs(title = "State and ledger: what things are, and how they got that way",
+       subtitle = "The dashboard shows state; the run history is the ledger; the provenance line connects them.\nRead-only queries are deliberately not recorded - a ledger spammed by every glance is noise, not history.") +
+  theme_void(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(color = "grey30", size = 9.5),
+        plot.title.position = "plot")
+ggsave("docs/img/state_vs_ledger.png", p11, width = 9.2, height = 4.1, dpi = 150)
+cat("state-vs-ledger diagram written\n")

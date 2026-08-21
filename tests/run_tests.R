@@ -18,6 +18,7 @@ source("R/trending.R")
 source("R/signal_detection.R")
 source("R/text_mining.R")
 source("R/console.R")
+source("R/run_history.R")
 source("pipeline/config.R")
 source("pipeline/stages.R")
 

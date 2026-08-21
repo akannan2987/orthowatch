@@ -510,3 +510,23 @@ gitignored, because secrets never enter version control.
 hook. House rule learned the hard way: register it *before* the
 risky action it cleans up after, so even an interrupt in between
 cannot leave the mess behind.
+
+## The provenance words (added in Phase 8c)
+
+**State vs ledger** — the balance and the statement: state is what
+things are now (the result tables); the ledger is every event that
+made them so (run_history). Serious systems keep both.
+
+**Provenance** — the answer to "which run produced what I'm looking
+at?" — here, one sentence on the Overview tab, read from the
+ledger's latest line.
+
+**Run history / audit trail** — the append-only record of
+consequential events (probes, fetches, pipeline runs, report
+renders), failures included, stored in the database so it survives
+restarts and serves both the app and the Terminal.
+
+**Versioned result sets** — the roadmap storey above the ledger:
+per-run copies of every result table so old runs remain viewable.
+Powerful, storage-hungry, touches every query — a phase, not a
+patch.

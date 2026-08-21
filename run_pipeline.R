@@ -22,6 +22,7 @@ source("R/clean_events.R")
 source("R/trending.R")
 source("R/signal_detection.R")
 source("R/text_mining.R")
+source("R/run_history.R")
 source("pipeline/config.R")
 source("pipeline/stages.R")
 
@@ -45,13 +46,25 @@ cfg <- pipeline_config()
 message("== OrthoWatch pipeline ==  stages: ", paste(wanted, collapse = " -> "))
 
 timings <- data.frame(stage = character(), seconds = numeric())
-for (s in wanted) {
-  message("\n── stage: ", s, " ──")
-  t0 <- Sys.time()
-  PIPELINE_STAGES[[s]](cfg)          # any error stops the whole run
-  secs <- round(as.numeric(difftime(Sys.time(), t0, units = "secs")), 1)
-  timings <- rbind(timings, data.frame(stage = s, seconds = secs))
-}
+run_ok <- TRUE
+tryCatch({
+  for (s in wanted) {
+    message("\n── stage: ", s, " ──")
+    t0 <- Sys.time()
+    PIPELINE_STAGES[[s]](cfg)        # any error stops the whole run
+    secs <- round(as.numeric(difftime(Sys.time(), t0, units = "secs")), 1)
+    timings <- rbind(timings, data.frame(stage = s, seconds = secs))
+  }
+}, error = function(e) {
+  run_ok <<- FALSE
+  # An honest ledger keeps its bad days - record, then still fail loudly.
+  try(record_run(cfg$db_path, "pipeline", paste(wanted, collapse = ", "),
+                 "error", summary = conditionMessage(e)), silent = TRUE)
+  stop(e)
+})
 
+record_run(cfg$db_path, "pipeline", paste(wanted, collapse = ", "), "ok",
+           summary = paste(timings$stage, timings$seconds, collapse = "; "),
+           seconds = sum(timings$seconds))
 message("\n== pipeline complete ==")
 print(timings, row.names = FALSE)

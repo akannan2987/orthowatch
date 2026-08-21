@@ -280,6 +280,20 @@ scope resolves to without touching the network. 72 tests.
 
 ![Scoped ingestion](figures/ingest_tab.png)
 
+### Phase 8c — The instrument gets a memory
+
+Every consequential event — probe, fetch, pipeline run, report
+render — now writes one line to a **run-history ledger** in the
+database itself (failures included: an honest ledger keeps its bad
+days). The Overview tab carries a **provenance line** naming the run
+behind the results on screen, the Pipeline tab shows the full
+history (restart-proof, and queryable from the Query tab, because
+the ledger is just another table), and successful runs **refresh the
+dashboard automatically**. State and ledger: what things are, and
+how they got that way. 79 tests.
+
+![Run history](figures/run_history.png)
+
 ## Build log
 
 | # | Document | Status |
@@ -296,6 +310,7 @@ scope resolves to without touching the network. 72 tests.
 | 7 | [Reproducible report & one-command pipeline](docs/08-phase-7-pipeline-report.md) | ✅ |
 | 8 | [Mission Control — the app suite](docs/09-phase-8-mission-control.md) | ✅ |
 | 8b | [Scoped ingestion & data access](docs/10-phase-8b-scoped-ingestion-data-access.md) | ✅ |
+| 8c | [Provenance & run history](docs/11-phase-8c-provenance-run-history.md) | ✅ |
 | 9 | Polish & release notes | planned |
 
 ## The tutorial, in order
@@ -467,6 +482,7 @@ orthowatch/
 ├── R/                             ← the engine: reusable, tested functions
 │   ├── clean_events.R             ← cleaning rules (Phase 2)
 │   ├── console.R                  ← read-only query engine (Phase 8)
+│   ├── run_history.R              ← the ledger: record + read runs (Phase 8c)
 │   ├── trending.R                 ← control-limit trending (Phase 3)
 │   ├── signal_detection.R         ← PRR/ROR disproportionality (Phase 4)
 │   └── text_mining.R              ← narrative tokenization + term stats (Phase 5)
@@ -491,6 +507,7 @@ orthowatch/
 │       ├── test-console.R
 │       ├── test-interactive_meta.R
 │       ├── test-pipeline.R
+│       ├── test-run_history.R
 │       ├── test-signal_detection.R
 │       ├── test-text_mining.R
 │       └── test-trending.R
