@@ -1,5 +1,7 @@
 # OrthoWatch 🦴📊
 
+**v1.0.0** · ![R](https://img.shields.io/badge/R-4.x-276DC3) ![Python](https://img.shields.io/badge/Python-3.x-3776AB) ![tests](https://img.shields.io/badge/tests-92%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue) · [Live report](https://akannan2987.github.io/orthowatch/orthowatch_report.html) · [Release notes](NEWS.md)
+
 ![R](https://img.shields.io/badge/R-tidyverse%20%2B%20Shiny-276DC3?logo=r)
 ![Python](https://img.shields.io/badge/Python-ingestion-3776AB?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-storage-003B57?logo=sqlite)
@@ -331,7 +333,50 @@ current events). 92 tests.
 | 8b | [Scoped ingestion & data access](docs/10-phase-8b-scoped-ingestion-data-access.md) | ✅ |
 | 8c | [Provenance & run history](docs/11-phase-8c-provenance-run-history.md) | ✅ |
 | 8d | [Versioned results & run selector](docs/12-phase-8d-versioned-results.md) | ✅ |
-| 9 | Polish & release notes | planned |
+| 9 | [Packaging: release notes, roadmap, 1.0](docs/13-phase-9-packaging.md) | ✅ |
+
+### Phase 9 — Release 1.0
+
+The packaging finale: **release notes** ([NEWS.md](NEWS.md)) stating
+what's verified and what's deliberately limited, an **MIT license**,
+a version stamped into the app, the **roadmap** below — and the
+build's own story as data: nine phases, each leaving the test suite
+larger than it found it. Hover the
+[interactive timeline](https://akannan2987.github.io/orthowatch/interactive/build_timeline.html)
+for what each phase shipped.
+
+![Nine phases, one growing safety net](docs/img/tests_growth.png)
+
+![The finished instrument](docs/img/finished_instrument.png)
+
+## Roadmap
+
+What a 1.1+ would build, and why each item waits — deferrals with
+reasons, not promises:
+
+- **Deployment (viewer/operator split)** — publish the five analysis
+  tabs + Query console to shinyapps.io behind a `DEPLOY_MODE` flag,
+  with a slimmed database; the operator tabs (Ingest/Pipeline/Report)
+  stay local where credentials and consequences live. Waits on: a
+  deploy-time db build (~1 GB bundle limit).
+- **Background execution + live logs** — a worker process
+  (`callr`/`future`) runs long stages while the UI stays live and
+  streams the log; the single-lane bridge gets a second lane. Waits
+  on: careful design — half-built concurrency is worse than honest
+  blocking.
+- **Versioned events** — extend vintages to the event tables so old
+  charts drill into their own era's reports. Waits on: storage
+  policy (~170K rows per run).
+- **Rolling-baseline control limits** — limits from a trailing
+  window instead of the full period, so old regimes stop defining
+  "normal". Waits on: window-length judgment, documented.
+- **Report vintage comparison** — a report mode rendering two
+  vintages side by side. Waits on: versioned-events above, for
+  honest drill-downs.
+- **Search-After paging** — lift the 26K-per-slice API ceiling for
+  denser scopes. **Bigrams** — "difficult to advance" as one token.
+  **Manufacturer entity resolution** — one company, many spellings,
+  resolved.
 
 ## The tutorial, in order
 
@@ -354,6 +399,7 @@ with its expected output. Read in order:
 | 09 | [Phase 8 — Mission Control](docs/09-phase-8-mission-control.md) | The workbench: run stages, query read-only, render on demand |
 | 10 | [Phase 8b — Scoped ingestion & data access](docs/10-phase-8b-scoped-ingestion-data-access.md) | Query dictionary, validate-before-network, exports |
 | — | [Query cookbook](docs/QUERY_COOKBOOK.md) | Ready-to-paste SQL for the app's Query tab |
+| 13 | [Phase 9 — Packaging](docs/13-phase-9-packaging.md) | Versions, release notes, roadmap, license, the 1.0 tag |
 | — | [SQL cookbook](docs/QUERY_COOKBOOK.md) | Ready-to-run queries for the Query tab, from first SELECT to vintages |
 | — | [Glossary](docs/GLOSSARY.md) | Every term, plain language, by phase |
 
@@ -513,6 +559,8 @@ orthowatch/
 ├── R/                             ← the engine: reusable, tested functions
 │   ├── clean_events.R             ← cleaning rules (Phase 2)
 │   ├── console.R                  ← read-only query engine (Phase 8)
+├── NEWS.md                        ← release notes (v1.0.0)
+├── LICENSE                        ← MIT
 │   ├── run_history.R              ← the ledger + versioned vintages
 │   │                                (record/read runs, Phase 8c;
 │   │                                 write_versioned/read_result, Phase 8d)

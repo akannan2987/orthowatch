@@ -554,3 +554,24 @@ safe.
 (`keep_runs`): the newest N vintages stay, older ones age out —
 instead of accidental forgetting on every run, or a database that
 grows forever.
+
+## The release words (added in Phase 9)
+
+**Semantic versioning (semver)** — MAJOR.MINOR.PATCH: fixes bump
+PATCH, compatible new capability bumps MINOR, breaking change bumps
+MAJOR. A version number that tells you what kind of change you're
+getting.
+
+**Release notes (NEWS.md)** — the one-page answer to "what is this
+release, what's verified, what are its limits?" — written for the
+returning stranger, including future-you.
+
+**Roadmap** — the honest list of what would come next and why it
+isn't built yet. Deferrals with reasons, not promises.
+
+**License** — the legal grant that makes public code usable.
+Without one, visible still means all-rights-reserved.
+
+**Tag / release** — a permanent name (`v1.0.0`) for one exact
+commit; the bookmark that lets anyone retrieve precisely what
+shipped.

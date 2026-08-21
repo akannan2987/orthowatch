@@ -402,6 +402,8 @@ ui <- navbarPage(
 
   tabPanel("About",
     fluidRow(column(8, offset = 2,
+      p(class = "text-muted", strong("OrthoWatch v1.0.0"),
+        " — see NEWS.md in the repository for release notes."),
       h4("How this app is built"),
       p("The charts are the same tested functions the analysis
         scripts use (R/ directory; 42 automated tests). Small result

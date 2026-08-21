@@ -448,3 +448,58 @@ p12 <- ggplot(vt) +
         plot.title.position = "plot")
 ggsave("docs/img/one_table_many_vintages.png", p12, width = 9.6, height = 3.9, dpi = 150)
 cat("vintages diagram written\n")
+
+# ── 13. The build, as a curve (Phase 9) ──────────────────────────────
+bl <- tibble(
+  phase = factor(c("P3\ntrend","P4\nsignals","P5\ntext","P6\ndashboard",
+                   "P7\npipeline","P8\nworkbench","P8b\nscope+data",
+                   "P8c\nledger","P8d\nvintages"),
+                 levels = c("P3\ntrend","P4\nsignals","P5\ntext","P6\ndashboard",
+                            "P7\npipeline","P8\nworkbench","P8b\nscope+data",
+                            "P8c\nledger","P8d\nvintages")),
+  tests = c(8, 22, 36, 42, 50, 63, 72, 79, 92))
+p13 <- ggplot(bl, aes(phase, tests, group = 1)) +
+  geom_line(color = "grey40") +
+  geom_point(size = 2.6, color = "#1f77b4") +
+  geom_text(aes(label = tests), vjust = -1.1, size = 3.1) +
+  annotate("text", x = 1.2, y = 84, hjust = 0, size = 3.0, color = "grey35",
+           label = "every phase left the suite larger than it found it -\nthe test gate is why later phases could rebuild earlier ones safely") +
+  scale_y_continuous(limits = c(0, 100), expand = expansion(mult = c(0, .02))) +
+  labs(title = "Nine phases, one growing safety net",
+       subtitle = "Automated tests at each phase's close. The suite is the project's memory of every rule it ever learned.",
+       x = NULL, y = "tests passing") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"),
+        plot.title.position = "plot", panel.grid.minor = element_blank())
+ggsave("docs/img/tests_growth.png", p13, width = 8.6, height = 4.0, dpi = 150)
+
+# ── 14. The finished instrument (Phase 9) ────────────────────────────
+fi <- tibble(
+  x = c(2.0, 5.0, 8.0),
+  y = 2.9,
+  lab = c("TERMINAL\nRscript run_pipeline.R\n(operator: full refresh,\nscheduled runs)",
+          "THE INSTRUMENT\nSQLite + versioned vintages\n+ run ledger + tested engines\n(one pipeline underneath)",
+          "BROWSER APP\n12 tabs: dashboard,\ningest, pipeline, query,\ndata, report"),
+  fill = c("#fff3e0", "#e5f2e5", "#e8f0f8"))
+p14 <- ggplot(fi) +
+  geom_rect(aes(xmin = x - 1.35, xmax = x + 1.35, ymin = y - 0.85,
+                ymax = y + 0.85), fill = fi$fill, color = "grey40",
+            linewidth = 0.45) +
+  geom_text(aes(x = x, y = y, label = lab), size = 3.0, lineheight = 1.05) +
+  annotate("segment", x = c(3.45, 6.45), xend = c(3.6, 6.6), y = 2.9, yend = 2.9,
+           arrow = arrow(length = unit(0.16, "cm"), ends = "both"), color = "grey45") +
+  annotate("rect", xmin = 3.4, xmax = 6.6, ymin = 0.75, ymax = 1.45,
+           fill = "#f5e6e6", color = "grey40", linewidth = 0.4) +
+  annotate("text", x = 5, y = 1.1, size = 2.95,
+           label = "PUBLISHED SURFACE (GitHub Pages)\nreport + interactive charts + this tutorial") +
+  annotate("segment", x = 5, xend = 5, y = 2.0, yend = 1.5,
+           arrow = arrow(length = unit(0.16, "cm")), color = "grey45") +
+  scale_x_continuous(limits = c(0.4, 9.6)) + scale_y_continuous(limits = c(0.45, 4.0)) +
+  labs(title = "The finished instrument: two doors, one machine, one public face",
+       subtitle = "Terminal and browser drive the same tested pipeline; everything the pipeline learns can leave through Pages, downloads, or SQL.") +
+  theme_void(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(color = "grey30", size = 9.5),
+        plot.title.position = "plot")
+ggsave("docs/img/finished_instrument.png", p14, width = 9.4, height = 3.8, dpi = 150)
+cat("phase 9 figures written\n")
