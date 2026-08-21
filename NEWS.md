@@ -1,6 +1,15 @@
 # OrthoWatch release notes
 
-## v1.0.0 — 2026-08-05 — "The finished instrument"
+## v1.0.1 — 2026-08-22
+
+- `setup.sh`: one-command dependency setup for a fresh clone
+  (Python venv + requirements.txt; R packages via `renv::restore()`).
+  Installs dependencies only — data fetching stays a deliberate,
+  documented step.
+- README gains a Quick start; roadmap gains the installable-package
+  / Docker rung (a 2.0-scale reorganization, honestly deferred).
+
+## v1.0.0 — 2026-08-21 — "The finished instrument"
 
 First stable release. From an empty laptop to a post-market
 surveillance instrument over 84,547 FDA MAUDE orthopedic device

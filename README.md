@@ -375,6 +375,10 @@ reasons, not promises:
 - **Report vintage comparison** — a report mode rendering two
   vintages side by side. Waits on: versioned-events above, for
   honest drill-downs.
+- **Installable package** — restructure as an R package
+  (`remotes::install_github(...)` then `orthowatch::run_app()`), and
+  a Dockerfile for one-command containerized runs. Waits on: package
+  layout is a breaking reorganization — a proper 2.0, not a patch.
 - **Search-After paging** — lift the 26K-per-slice API ceiling for
   denser scopes. **Bigrams** — "difficult to advance" as one token.
   **Manufacturer entity resolution** — one company, many spellings,
@@ -621,9 +625,21 @@ teaching illustrations; `figures/` = charts computed from the real data.
 
 ## How to run
 
-Start at [`docs/01-setup.md`](docs/01-setup.md) — it assumes a
-completely blank machine and explains every step, then hands off to
-the Phase 1 guide. The short version, once set up:
+**Quick start** (R and Python 3 installed; everything else automated):
+
+```bash
+git clone https://github.com/akannan2987/orthowatch.git
+cd orthowatch
+./setup.sh                      # installs pinned R + Python dependencies
+# add your free openFDA API key (docs/02, section 3), then:
+source .venv/bin/activate
+Rscript run_pipeline.R all      # fetch + build + test + report (~30-40 min)
+R -e 'shiny::runApp("app")'     # the instrument
+```
+
+For the guided path — every step explained from a blank machine —
+start at [`docs/01-setup.md`](docs/01-setup.md). Individual pieces,
+once set up:
 
 ```bash
 python ingest/fetch_maude.py --probe   # see how many reports are available

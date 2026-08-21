@@ -1,0 +1,3 @@
+# Python side of OrthoWatch (the ingestion scripts).
+# The R side is pinned by renv.lock (restored via renv::restore()).
+requests>=2.31
