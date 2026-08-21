@@ -75,7 +75,7 @@ what it shipped — lives with its siblings:
 ```bash
 ls NEWS.md LICENSE docs/13-phase-9-packaging.md docs/interactive/build_timeline.html
 grep -c "v1.0.0" app/app.R        # expect 1
-grep -c "Roadmap" README.md       # expect 1
+grep -c "Roadmap" README.md       # expect 2
 grep -c "v1.0.0" NEWS.md          # expect 1
 ```
 

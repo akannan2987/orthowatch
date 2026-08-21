@@ -25,16 +25,15 @@ public, fully explained.**
 - [What is an adverse event? (start here)](#what-is-an-adverse-event-start-here)
 - [The problem this project tackles](#the-problem-this-project-tackles)
 - [How it works](#how-it-works)
-- [Results, phase by phase](#the-data-at-a-glance) — tables, charts, the
-  dashboard, the pipeline, and every finding, with figures
+- [The data at a glance](#the-data-at-a-glance) — results phase by phase: tables, charts, the app, every finding, with figures
 - [Build log](#build-log) — every phase, linked to its guide
-- [**The tutorial, in order**](#the-tutorial-in-order) — the 12
-  documents that teach every step from a blank laptop
-- [Bumps hit along the way](#bumps-hit-along-the-way-kept-on-purpose) —
-  real mistakes, kept and explained
+- [Roadmap](#roadmap) — what 1.1+ would build, with reasons each item waits
+- [**The tutorial, in order**](#the-tutorial-in-order) — the documents that teach every step from a blank laptop
+- [Bumps hit along the way (kept on purpose)](#bumps-hit-along-the-way-kept-on-purpose) — real mistakes, kept and explained
 - [About the data (honesty notes)](#about-the-data-honesty-notes)
-- [Repository map](#repository-map)
+- [Repository map](#repository-map) — every file, annotated
 - [How to run](#how-to-run)
+- [Why the documentation is so detailed](#why-the-documentation-is-so-detailed)
 
 ## What is an adverse event? (start here)
 
@@ -404,6 +403,8 @@ with its expected output. Read in order:
 | 08 | [Phase 7 — Pipeline & report](docs/08-phase-7-pipeline-report.md) | Config-driven stages, the test gate, the executable report |
 | 09 | [Phase 8 — Mission Control](docs/09-phase-8-mission-control.md) | The workbench: run stages, query read-only, render on demand |
 | 10 | [Phase 8b — Scoped ingestion & data access](docs/10-phase-8b-scoped-ingestion-data-access.md) | Query dictionary, validate-before-network, exports |
+| 11 | [Phase 8c — Provenance & run history](docs/11-phase-8c-provenance-run-history.md) | State vs ledger; the provenance line; auto-refresh |
+| 12 | [Phase 8d — Versioned results](docs/12-phase-8d-versioned-results.md) | One table, many vintages; analysis scope; the run selector |
 | — | [Query cookbook](docs/QUERY_COOKBOOK.md) | Ready-to-paste SQL for the app's Query tab |
 | 13 | [Phase 9 — Packaging](docs/13-phase-9-packaging.md) | Versions, release notes, roadmap, license, the 1.0 tag |
 | — | [SQL cookbook](docs/QUERY_COOKBOOK.md) | Ready-to-run queries for the Query tab, from first SELECT to vintages |
@@ -517,112 +518,94 @@ Phase 1 guide's troubleshooting section:
 
 ## Repository map
 
-The full tree, annotated with the phase that creates each file. When a
-tutorial phase hands you a new file, this is where it goes:
+The full tree, annotated with the phase that created each piece:
 
 ```
 orthowatch/
 ├── README.md                      ← you are here
-├── .gitignore                     ← files Git must ignore (setup)
-├── .Rprofile                      ← created by renv; activates it (setup)
-├── orthowatch.Rproj               ← marks this folder as an RStudio project
-├── renv.lock                      ← exact R package versions (setup)
-├── renv/                          ← R's sealed package toolbox (setup)
+├── NEWS.md                        ← release notes (v1.0.x)
+├── LICENSE                        ← MIT
+├── setup.sh                       ← one-command dependency setup (v1.0.1)
+├── requirements.txt               ← Python deps (the R side: renv.lock)
+├── run_pipeline.R                 ← the whole project, one command (Phase 7)
+├── .gitignore                     ← incl. data/, .Renviron, raw snapshots
+├── .Renviron                      ← your API key for R — gitignored, never committed
+├── .Rprofile / orthowatch.Rproj   ← renv activation / RStudio project marker
+├── renv.lock + renv/              ← exact R package versions + sealed library
 ├── .venv/                         ← Python's sealed toolbox — NOT in Git
 │
-├── docs/                          ← the tutorials: read these in order
-│   ├── GLOSSARY.md                ← every term, plain language
+├── docs/                          ← the tutorial + everything Pages publishes
 │   ├── 00-architecture.md         ← how it all fits together
 │   ├── 01-setup.md                ← blank laptop → working workshop
-│   ├── 02-phase-1-ingestion.md    ← Phase 1 guide
-│   ├── 03-phase-2-cleaning.md     ← Phase 2 guide
-│   ├── 04-phase-3-trending.md     ← Phase 3 guide
-│   ├── img/                       ← teaching figures (synthetic data)
-│   │   ├── make_illustrations.R   ← regenerates the four PNGs below
-│   │   ├── time_series_anatomy.png
-│   │   ├── absent_vs_zero.png
-│   │   ├── sqrt_rule.png
-│   │   └── control_chart_anatomy.png
-│   ├── interactive/               ← published interactive charts, served
-│   │   ├── trend_by_family.html      as web pages by GitHub Pages (Phase 3)
-│   │   ├── signals_top.html          (Phase 4)
-│   │   └── narrative_terms.html      (Phase 5)
+│   ├── 02..06                     ← Phases 1–5: ingest, clean, trend,
+│   │                                signals, text mining
+│   ├── 07..09                     ← Phases 6–8: dashboard, pipeline+report,
+│   │                                Mission Control
+│   ├── 10..13                     ← Phases 8b–9: scoped ingest+data access,
+│   │                                ledger, vintages, packaging
+│   ├── GLOSSARY.md                ← every term, plain language, by phase
+│   ├── QUERY_COOKBOOK.md          ← 16 validated SQL queries for the Query tab
+│   ├── UNINSTALL.md               ← complete, safe removal
+│   ├── img/                       ← 16 teaching figures (synthetic data) +
+│   │   └── make_illustrations.R     the script that regenerates every one,
+│   │                                plus the logo and cover (Phase 9)
+│   ├── interactive/               ← self-contained charts, live on Pages:
+│   │                                trends, signals, terms, build timeline
+│   ├── orthowatch_report.html     ← the published executable report
 │   └── .nojekyll                  ← tells Pages: serve files as-is
-│   (docs/ also gains 05-phase-4-signal-detection.md and
-│    img/contingency_2x2.png in Phase 4)
 │
-├── run_pipeline.R                 ← the whole project, one command (Phase 7)
-├── pipeline/                      ← the assembly line (Phase 7)
-│   ├── config.R                   ← the settings panel — one place
-│   └── stages.R                   ← every stage as a callable function
-│
-├── ingest/                        ← Python: getting the data (Phase 1)
-│   ├── requirements.txt           ← exact Python package versions
-│   ├── fetch_maude.py             ← FDA API → data/raw/ (scoped CLI:
-│   │                                --families --year-from/-to --search,
-│   │                                query dictionary, --dry-run; Phase 8b)
+├── ingest/                        ← Python: getting the data (Phases 1, 8b)
+│   ├── fetch_maude.py             ← FDA API → data/raw/ (scoped CLI, query
+│   │                                dictionary, --dry-run, tag self-check)
 │   └── load_to_sqlite.py          ← data/raw/ → the database
 │
 ├── R/                             ← the engine: reusable, tested functions
 │   ├── clean_events.R             ← cleaning rules (Phase 2)
-│   ├── console.R                  ← read-only query engine (Phase 8)
-├── NEWS.md                        ← release notes (v1.0.0)
-├── LICENSE                        ← MIT
-│   ├── run_history.R              ← the ledger + versioned vintages
-│   │                                (record/read runs, Phase 8c;
-│   │                                 write_versioned/read_result, Phase 8d)
 │   ├── trending.R                 ← control-limit trending (Phase 3)
 │   ├── signal_detection.R         ← PRR/ROR disproportionality (Phase 4)
-│   └── text_mining.R              ← narrative tokenization + term stats (Phase 5)
+│   ├── text_mining.R              ← narrative tokenization + terms (Phase 5)
+│   ├── console.R                  ← two-lock read-only SQL engine (Phase 8)
+│   └── run_history.R              ← ledger + versioned vintages (8c/8d)
 │
-├── analysis/                      ← narratives: scripts run line by line
-│   ├── 00_verify_ingest.R         ← Phase 1 checkpoint
-│   ├── 01_clean_events.R          ← Phase 2 walkthrough
-│   ├── 02_trending.R              ← Phase 3 walkthrough
-│   ├── 03_signal_detection.R      ← Phase 4 walkthrough
-│   └── 04_text_mining.R           ← Phase 5 walkthrough
+├── pipeline/                      ← the assembly line (Phases 7, 8b, 8d)
+│   ├── config.R                   ← the settings panel — one place
+│   └── stages.R                   ← every stage as a callable, scoped function
 │
-├── data/                          ← NOT in Git; regenerated by scripts
-│   ├── raw/                       ← untouched FDA downloads + fetch_log.csv
-│   └── processed/                 ← orthowatch.db (the SQLite database)
+├── analysis/                      ← Phase 1–5 walkthroughs, run line by line
+├── app/
+│   ├── app.R                      ← the 12-tab instrument (Phases 6–9)
+│   └── www/logo_orthowatch.png    ← the navbar brand
+├── report/orthowatch_report.qmd   ← renders from the db → docs/ (Phase 7)
+├── tests/                         ← run_tests.R + 7 testthat suites (92 checks)
 │
-├── figures/                       ← real-data charts (created in Phase 3;
-│                                    PNGs committed — the README's screenshots;
-│                                    interactive *.html previews NOT in Git)
-├── tests/                         ← automated checks (Phase 4)
-│   ├── run_tests.R                ← one command runs the whole suite
-│   └── testthat/
-│       ├── test-console.R
-│       ├── test-interactive_meta.R
-│       ├── test-pipeline.R
-│       ├── test-run_history.R
-│       ├── test-signal_detection.R
-│       ├── test-text_mining.R
-│       └── test-trending.R
-├── app/                           ← the Shiny dashboard (Phase 6)
-│   └── app.R                      ← UI + server, one commented file
-│                                    run: shiny::runApp("app")
-└── report/                        ← the executable report (Phase 7)
-    └── orthowatch_report.qmd      ← renders from the db; published
-                                     copy lives at docs/orthowatch_report.html
+├── figures/                       ← real-data charts + the app screenshots
+│                                    the README embeds (dashboard, mission
+│                                    control, ingest, run history, selector)
+└── data/                          ← NOT in Git; regenerated by the pipeline
+    ├── raw/                       ← untouched FDA downloads + fetch_log.csv
+    ├── raw_snapshot*/             ← your parachutes (also gitignored)
+    └── processed/orthowatch.db    ← the SQLite database
 ```
 
-Two kinds of "empty": remaining placeholder folders hold only a
-placeholder until their phase arrives; `data/` fills up on your machine
-but stays out of Git on purpose (the pipeline regenerates it — that's
-the proof it works). And two kinds of figures: `docs/img/` = synthetic
-teaching illustrations; `figures/` = charts computed from the real data.
+Two kinds of figures: `docs/img/` = synthetic teaching illustrations
+(all regenerable from one script); `figures/` = charts and
+screenshots from the real data. And two kinds of "not in Git":
+`data/` because the pipeline regenerates it (that's the proof it
+works), `.Renviron` because secrets never enter version control.
 
 | Path | What lives here |
 |---|---|
-| `docs/` | Numbered beginner-level tutorials for every phase, plus the [glossary](docs/GLOSSARY.md) |
-| `ingest/` | Python scripts that download FDA reports into the database |
-| `R/` | Reusable R functions — the tested "engine" (cleaning, trending, detection) |
-| `analysis/` | Exploratory R scripts, meant to be run line by line |
-| `app/` | The interactive dashboard (later phase) |
-| `report/` | The self-updating written report (later phase) |
-| `tests/` | Automated checks that the engine functions do what they claim |
-| `data/` | Raw and processed data — **not stored in Git**; regenerated by the scripts |
+| root files | Release surface: README, NEWS, LICENSE, one-command setup, the pipeline runner |
+| `docs/` | The 14-document tutorial, glossary, SQL cookbook, uninstall guide — plus everything GitHub Pages serves |
+| `ingest/` | Python: scoped, validated downloading of FDA reports |
+| `R/` | The tested engine: cleaning, trending, signals, text mining, SQL console, ledger/vintages |
+| `pipeline/` | Config + stages: the same machine both the Terminal and the app drive |
+| `analysis/` | Line-by-line walkthrough scripts from the learning phases |
+| `app/` | The 12-tab Shiny instrument and its logo |
+| `report/` | The executable Quarto report (published copy lives in `docs/`) |
+| `tests/` | 92 automated checks — the gate every pipeline run passes |
+| `figures/` | Real-data charts and the screenshots the README embeds |
+| `data/` | Raw + database — **never in Git**; regenerated on demand |
 
 ## How to run
 
