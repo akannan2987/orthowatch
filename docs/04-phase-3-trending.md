@@ -1,3 +1,5 @@
+[← README](../README.md) · [All docs in order](../README.md#the-tutorial-in-order) · [Glossary](GLOSSARY.md)
+
 # 04 — Phase 3: Complaint trending — from counts to judgment
 
 **Prerequisites:** Phase 2 complete — `clean_events` exists in the

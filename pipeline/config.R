@@ -30,6 +30,14 @@ pipeline_config <- function() {
     # ── Phase 5 threshold ────────────────────────────────────────────
     min_total_terms   = 50,    # drop words with < 50 total mentions
 
+    # ── fetch scope (NULL = the script's own config-block defaults) ──
+    # Threaded through stage_probe/stage_fetch as CLI arguments; the
+    # script validates everything again before any network call.
+    fetch_families  = NULL,   # subset of family slugs, e.g. c("hip_prosthesis")
+    fetch_year_from = NULL,   # e.g. 2023
+    fetch_year_to   = NULL,   # e.g. 2024
+    fetch_search    = "",     # extra clause, fields from the query dictionary
+
     # ── behavior ─────────────────────────────────────────────────────
     publish_interactive = TRUE   # copy interactive HTML to docs/ (Pages)
   )

@@ -1,3 +1,5 @@
+[← README](../README.md) · [All docs in order](../README.md#the-tutorial-in-order) · [Glossary](GLOSSARY.md)
+
 # 02 — Phase 1: Ingestion — real FDA data lands on your laptop
 
 **Prerequisites:** `01-setup.md` completed (all 8 verification checks pass,
@@ -121,9 +123,41 @@ https://api.fda.gov/device/event.json?search=device.generic_name:"hip prosthesis
 echo $OPENFDA_API_KEY      # expected: your key printed back
 ```
 
-5. Why this can't leak to GitHub: the startup file lives in your home
-   folder, *outside* the repo — Git cannot commit what it cannot see.
-   The code contains only the variable's *name*, never its value. The
+5. **Also give the key to R** (this matters from Phase 7 onward, and
+   it's a subtle, important lesson): an environment variable is
+   inherited *at process birth, from the parent* — and from nowhere
+   else. Your shell startup file covers every program launched **from
+   a Terminal** (the fetch script, `Rscript run_pipeline.R`), but
+   RStudio launched from the Dock is born of a *different* parent and
+   never sees your Terminal's export — so neither does anything R
+   starts, including the app's fetch buttons. R has its own startup
+   file for exactly this: **`.Renviron`** in the project root, read
+   at every R session start. Set it up now (paste your real key):
+
+```bash
+# In the project root:
+echo 'OPENFDA_API_KEY=your-key-here' >> .Renviron
+
+# CRITICAL — a secret must never enter Git. The project's .gitignore
+# already ignores .Renviron; verify the shield is up:
+git check-ignore -v .Renviron    # expected: .gitignore:<line>  .Renviron
+```
+
+   Then restart R (Session → Restart R — startup files are read at
+   birth) and verify from the R Console:
+
+```r
+nchar(Sys.getenv("OPENFDA_API_KEY")) > 0    # expected: TRUE
+```
+
+   Two homes, one key: the shell startup file for Terminal-launched
+   programs, `.Renviron` for R and everything R launches. (Note the
+   `.Renviron` line has **no `export` and no quotes** — R's format,
+   not the shell's.)
+
+6. Why none of this can leak to GitHub: the shell startup file lives
+   in your home folder, *outside* the repo — Git cannot commit what it
+   cannot see — and the in-repo `.Renviron` is gitignored. The
    one remaining risk is human: never paste the key into a script, doc,
    commit message, or screenshot. If a key ever does leak, delete it on
    the openFDA site and generate a new one — keys are disposable.

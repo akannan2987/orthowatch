@@ -1,3 +1,5 @@
+[← README](../README.md) · [All docs in order](../README.md#the-tutorial-in-order) · [Glossary](GLOSSARY.md)
+
 # 09 — Phase 8: Mission Control — from dashboard to workbench
 
 **Prerequisites:** Phases 1–7 complete; the pipeline runs green; the
@@ -235,7 +237,7 @@ fallback as Phase 7: RStudio's Render button; the FAQ entry there
 covers PATH.
 
 **I ran `load` from the app and the log is huge** — the loader
-prints one line per raw file (92 of them). Harmless; the log pane
+prints one line per raw file (95 of them). Harmless; the log pane
 scrolls.
 
 **After a run the dashboard looks unchanged** — did you press
@@ -256,6 +258,7 @@ One pipeline underneath all of it — which was the entire design.
 
 ---
 
-**Next:** `10-phase-9-packaging.md` — the finale: README polish,
+**Next:** `10-phase-8b-scoped-ingestion-data-access.md` — scoped
+ingestion and full data access; after it, the finale: README polish,
 release notes, the honest roadmap (deployment, background execution,
 rolling baselines), and the repo declared 1.0.

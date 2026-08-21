@@ -16,6 +16,22 @@ public, fully explained.**
 
 ---
 
+## Contents
+
+- [What is an adverse event? (start here)](#what-is-an-adverse-event-start-here)
+- [The problem this project tackles](#the-problem-this-project-tackles)
+- [How it works](#how-it-works)
+- [Results, phase by phase](#the-data-at-a-glance) — tables, charts, the
+  dashboard, the pipeline, and every finding, with figures
+- [Build log](#build-log) — every phase, linked to its guide
+- [**The tutorial, in order**](#the-tutorial-in-order) — the 12
+  documents that teach every step from a blank laptop
+- [Bumps hit along the way](#bumps-hit-along-the-way-kept-on-purpose) —
+  real mistakes, kept and explained
+- [About the data (honesty notes)](#about-the-data-honesty-notes)
+- [Repository map](#repository-map)
+- [How to run](#how-to-run)
+
 ## What is an adverse event? (start here)
 
 Imagine a patient whose hip implant starts loosening two years after
@@ -249,6 +265,21 @@ credentialed download doesn't belong behind a button that freezes a
 browser), and true background execution is the named roadmap item —
 design decisions documented, not hidden.
 
+### Phase 8b — Scoped ingestion & full data access
+
+The intake gets a steering wheel and the data gets doors: an
+**Ingest** tab where the user picks families, years, and an optional
+extra search term — validated against a **query dictionary** of the
+API's searchable fields *before any network call* (typos fail
+instantly, with reasons) — probes the scope for free, then fetches
+it; and a **Data** tab that browses every table with per-column
+filters and sorting, and exports any table (CSV / Excel / JSON),
+any figure, and the report, at full fidelity. One scope definition
+travels UI → config → CLI → API; a `--dry-run` flag prints what any
+scope resolves to without touching the network. 72 tests.
+
+![Scoped ingestion](figures/ingest_tab.png)
+
 ## Build log
 
 | # | Document | Status |
@@ -264,7 +295,30 @@ design decisions documented, not hidden.
 | 6 | [Interactive dashboard (Shiny)](docs/07-phase-6-shiny-dashboard.md) | ✅ |
 | 7 | [Reproducible report & one-command pipeline](docs/08-phase-7-pipeline-report.md) | ✅ |
 | 8 | [Mission Control — the app suite](docs/09-phase-8-mission-control.md) | ✅ |
+| 8b | [Scoped ingestion & data access](docs/10-phase-8b-scoped-ingestion-data-access.md) | ✅ |
 | 9 | Polish & release notes | planned |
+
+## The tutorial, in order
+
+Every step of this project — from an empty laptop to the workbench —
+is taught in `docs/`, written for a complete beginner, with every
+term defined ([glossary](docs/GLOSSARY.md)) and every command shown
+with its expected output. Read in order:
+
+| # | Guide | What it teaches |
+|---|---|---|
+| 00 | [Architecture](docs/00-architecture.md) | How all the pieces fit together |
+| 01 | [Setup](docs/01-setup.md) | Blank laptop → working workshop (R, Python, Git, the verification habit) |
+| 02 | [Phase 1 — Ingestion](docs/02-phase-1-ingestion.md) | APIs, paging, retries; real FDA data lands |
+| 03 | [Phase 2 — Cleaning](docs/03-phase-2-cleaning.md) | Dates, dedup, device families; the cleaning ledger |
+| 04 | [Phase 3 — Trending](docs/04-phase-3-trending.md) | Control charts; interactive charts; GitHub Pages |
+| 05 | [Phase 4 — Signal detection](docs/05-phase-4-signal-detection.md) | 2×2 tables, PRR/ROR, the Evans rule; automated tests |
+| 06 | [Phase 5 — Text mining](docs/06-phase-5-text-mining.md) | Tokens, stop words, distinctive vocabulary; reading missions |
+| 07 | [Phase 6 — The dashboard](docs/07-phase-6-shiny-dashboard.md) | Shiny, reactivity, click drill-downs |
+| 08 | [Phase 7 — Pipeline & report](docs/08-phase-7-pipeline-report.md) | Config-driven stages, the test gate, the executable report |
+| 09 | [Phase 8 — Mission Control](docs/09-phase-8-mission-control.md) | The workbench: run stages, query read-only, render on demand |
+| 10 | [Phase 8b — Scoped ingestion & data access](docs/10-phase-8b-scoped-ingestion-data-access.md) | Query dictionary, validate-before-network, exports |
+| — | [Glossary](docs/GLOSSARY.md) | Every term, plain language, by phase |
 
 ## Bumps hit along the way (kept on purpose)
 
@@ -283,6 +337,38 @@ Phase 1 guide's troubleshooting section:
   hit). The script now identifies itself by name on every request,
   uses a free registered access key, and waits-and-retries politely
   when refused.
+- **A silent edit-miss made a promise the code didn't keep.** The
+  scoped-fetch feature was supposed to tag its files (`_q`) so they
+  could never collide with the main dataset's pages — the dry-run
+  even printed the tagged pattern. But the automated edit that was
+  meant to add the tag to the *save path* targeted a variable name
+  that didn't quite match, silently changed nothing, and a scoped
+  1-report fetch overwrote a 1,000-report page file. The pipeline's
+  printed counts caught it within one run (84,549 became 83,550 for
+  no stated reason), and the Query console's per-file counts located
+  the casualty. Lessons kept: numbers that move without a reason are
+  an alarm, not noise; and automated edits must be verified
+  *per-change*, against the artifact — a "something changed" check
+  is not verification.
+- **A scoped fetch silently overwrote a full page file.** The
+  extra-search fetch was meant to write tag-marked files alongside
+  the originals; on one machine the tag never reached the filename,
+  and a 1-report download replaced a 1,000-report page. The
+  pipeline's printed counts caught it on the next run (84,549 became
+  83,550 — numbers that move without a reason are the alarm), and
+  the Query console's per-source-file counts located the wound.
+  Fixes kept: page-file names now come from ONE function used by
+  both the writer and the dry-run (claims derived, never asserted
+  beside the code), and a runtime self-check makes any future tag
+  failure a loud error instead of a silent clobber.
+- **An interrupted handler stranded R's working directory.** The
+  app briefly changes directory to run pipeline stages; a fetch that
+  errored out mid-handler left the session parked inside `app/`, and
+  the next `runApp("app")` failed with "No Shiny application exists"
+  — a confusing symptom two steps removed from its cause. Lesson
+  kept (and applied at all three sites): register the cleanup
+  *before* the risky action — `on.exit(restore)` first, `setwd()`
+  second — so no error path can leave the mess behind.
 - **A test fixture drifted from the real schema.** The dashboard's
   month drill-down was validated headlessly against a synthetic
   database — built from memory, with a `date_received` column the
@@ -364,7 +450,9 @@ orthowatch/
 │
 ├── ingest/                        ← Python: getting the data (Phase 1)
 │   ├── requirements.txt           ← exact Python package versions
-│   ├── fetch_maude.py             ← FDA API → data/raw/
+│   ├── fetch_maude.py             ← FDA API → data/raw/ (scoped CLI:
+│   │                                --families --year-from/-to --search,
+│   │                                query dictionary, --dry-run; Phase 8b)
 │   └── load_to_sqlite.py          ← data/raw/ → the database
 │
 ├── R/                             ← the engine: reusable, tested functions

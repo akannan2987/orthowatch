@@ -1,3 +1,5 @@
+[← README](../README.md) · [All docs in order](../README.md#the-tutorial-in-order) · [Glossary](GLOSSARY.md)
+
 # 07 — Phase 6: The Shiny dashboard — assembly
 
 **Prerequisites:** Phases 1–5 complete; five tables in the database;
@@ -293,7 +295,7 @@ open in another session; close it or restart that R.
 
 ---
 
-**Next:** `08-phase-7-report-and-pipeline.md` — the last construction
+**Next:** `08-phase-7-pipeline-report.md` — the last construction
 phase: a reproducible Quarto report that re-tells the whole analysis
 from the database, and a one-command pipeline that reruns everything
 — fetch → load → clean → trend → signals → terms → tests — proving

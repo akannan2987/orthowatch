@@ -47,3 +47,26 @@ test_that("stage_trend runs end to end against a temporary database", {
   expect_equal(nrow(m), 12)
   expect_true(all(c("center", "ucl", "lcl", "status") %in% names(m)))
 })
+
+test_that("fetch scope validation refuses what the API can't answer", {
+  expect_true(validate_fetch_scope()$ok)
+  expect_true(validate_fetch_scope(families = "hip_prosthesis",
+                                   year_from = 2023, year_to = 2024,
+                                   search = 'product_problems:"Corroded"')$ok)
+  expect_false(validate_fetch_scope(families = "shoulder_thing")$ok)
+  expect_false(validate_fetch_scope(year_from = 2024, year_to = 2020)$ok)
+  expect_false(validate_fetch_scope(search = "bogus_field:xyz")$ok)
+  expect_match(validate_fetch_scope(search = "just words")$reason, "field:value")
+})
+
+test_that("build_fetch_args threads the scope into CLI arguments", {
+  cfg <- pipeline_config()
+  cfg$fetch_families <- c("hip_prosthesis", "bone_plate")
+  cfg$fetch_year_from <- 2023; cfg$fetch_year_to <- 2024
+  cfg$fetch_search <- 'event_type:Malfunction'
+  a <- build_fetch_args(cfg, probe = TRUE)
+  expect_true(all(c("--probe", "--families", "--year-from", "--search") %in% a))
+  expect_true("hip_prosthesis,bone_plate" %in% a)
+  # default config adds no scope flags at all (script defaults rule)
+  expect_equal(build_fetch_args(pipeline_config()), "ingest/fetch_maude.py")
+})

@@ -1,3 +1,5 @@
+[← README](../README.md) · [All docs in order](../README.md#the-tutorial-in-order) · [Glossary](GLOSSARY.md)
+
 # 03 — Phase 2: Cleaning & harmonization — from chaos to analysis-ready
 
 **Prerequisites:** Phase 1 complete — `raw_events` exists in

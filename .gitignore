@@ -42,3 +42,6 @@ figures/*_files/
 # effect of Rscript runs, never a deliverable (real figures are saved
 # deliberately into figures/).
 Rplots.pdf
+
+# API keys and other secrets - never committed
+.Renviron

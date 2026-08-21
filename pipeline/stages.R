@@ -35,12 +35,74 @@ stage_fetch <- function(cfg = pipeline_config(), probe = FALSE) {
   # a full fetch takes tens of minutes and needs the API key exported.
   # Scope (families x years) is set in the script's CONFIGURATION
   # block. probe = TRUE shows counts without downloading.
-  args <- c("ingest/fetch_maude.py", if (probe) "--probe")
+  chk <- validate_fetch_scope(cfg$fetch_families, cfg$fetch_year_from,
+                              cfg$fetch_year_to, cfg$fetch_search %||% "")
+  if (!chk$ok) stop("bad fetch scope: ", chk$reason)
+  args <- build_fetch_args(cfg, probe = probe)
   .stage_msg("[fetch] running: %s %s", .python(), paste(args, collapse = " "))
-  status <- system2(.python(), args)
+  # stdout captured and re-emitted as messages so BOTH the Terminal
+  # and the app's on-screen log see the script's output.
+  out <- suppressWarnings(system2(.python(), args, stdout = TRUE, stderr = TRUE))
+  status <- attr(out, "status") %||% 0
+  if (length(out) > 0) message(paste(out, collapse = "\n"))
   if (status != 0) stop("fetch failed (exit ", status,
-                        ") - venv activated? OPENFDA_API_KEY exported?")
+                        ") - venv activated? OPENFDA_API_KEY exported? scope valid?")
   invisible(list(note = if (probe) "probe only" else "raw refreshed"))
+}
+
+# The R-side mirror of the fetch script's query dictionary: same
+# whitelist, so the app can refuse a bad scope INSTANTLY (and the
+# script re-validates anyway - defense in depth, again).
+FETCH_FAMILIES <- c("hip_prosthesis", "knee_prosthesis",
+                    "bone_plate", "spinal_fixation")
+SEARCHABLE_FIELDS <- c("device.generic_name", "device.brand_name",
+                       "device.manufacturer_d_name", "device.model_number",
+                       "event_type", "product_problems", "mdr_text.text")
+
+validate_fetch_scope <- function(families = NULL, year_from = NULL,
+                                 year_to = NULL, search = "") {
+  # Returns list(ok, reason) - the app shows `reason` in red.
+  if (!is.null(families)) {
+    bad <- setdiff(families, FETCH_FAMILIES)
+    if (length(bad) > 0)
+      return(list(ok = FALSE, reason = paste0("unknown family: ",
+        paste(bad, collapse = ", "), " - known: ",
+        paste(FETCH_FAMILIES, collapse = ", "))))
+    if (length(families) == 0)
+      return(list(ok = FALSE, reason = "pick at least one family"))
+  }
+  y0 <- year_from %||% 2020; y1 <- year_to %||% 2024
+  if (!(2010 <= y0 && y0 <= y1 && y1 <= 2026))
+    return(list(ok = FALSE, reason = sprintf(
+      "year range %s-%s invalid (2010-2026, from <= to)", y0, y1)))
+  if (nzchar(trimws(search))) {
+    flds <- regmatches(search,
+      gregexpr("[A-Za-z_][A-Za-z0-9_.]*(?=\\s*:)", search, perl = TRUE))[[1]]
+    if (length(flds) == 0)
+      return(list(ok = FALSE,
+        reason = 'no field:value term found - e.g. product_problems:"Corroded"'))
+    bad <- setdiff(flds, SEARCHABLE_FIELDS)
+    if (length(bad) > 0)
+      return(list(ok = FALSE, reason = paste0("unknown field(s): ",
+        paste(bad, collapse = ", "), " - searchable: ",
+        paste(SEARCHABLE_FIELDS, collapse = ", "))))
+  }
+  list(ok = TRUE, reason = "")
+}
+
+build_fetch_args <- function(cfg, probe = FALSE) {
+  # config -> the exact CLI arguments (the tested seam between R and
+  # Python; a dry-run of these args prints the resolved queries).
+  args <- c("ingest/fetch_maude.py", if (probe) "--probe")
+  if (!is.null(cfg$fetch_families))
+    args <- c(args, "--families", paste(cfg$fetch_families, collapse = ","))
+  if (!is.null(cfg$fetch_year_from))
+    args <- c(args, "--year-from", cfg$fetch_year_from)
+  if (!is.null(cfg$fetch_year_to))
+    args <- c(args, "--year-to", cfg$fetch_year_to)
+  if (nzchar(trimws(cfg$fetch_search %||% "")))
+    args <- c(args, "--search", cfg$fetch_search)
+  args
 }
 
 # ── Stage: probe ─────────────────────────────────────────────────────

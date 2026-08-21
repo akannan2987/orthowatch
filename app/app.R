@@ -97,6 +97,27 @@ n_reports <- .d0$n_reports
 MC_STAGES <- c("probe", "load", "clean", "trend", "signals",
                "terms", "test", "report")
 
+# The query dictionary, as shown to the user (mirrors the whitelist in
+# ingest/fetch_maude.py - the script re-validates everything anyway).
+QUERY_DICT <- data.frame(
+  field = c("device.generic_name", "device.brand_name",
+            "device.manufacturer_d_name", "device.model_number",
+            "event_type", "product_problems", "mdr_text.text"),
+  meaning = c("device type as FDA names it", "product/brand name",
+              "manufacturer name", "model number",
+              "Injury / Malfunction / Death / Other",
+              "coded problem term", "words in the narrative text"),
+  example = c('device.generic_name:(shoulder AND prosthesis)',
+              'device.brand_name:ATTUNE',
+              'device.manufacturer_d_name:ZIMMER',
+              'device.model_number:12345',
+              'event_type:Malfunction',
+              'product_problems:"Corroded"',
+              'mdr_text.text:(cobalt AND revision)'))
+
+DATA_TABLES <- c("monthly_trends", "signal_stats", "narrative_terms",
+                 "clean_events", "raw_events")
+
 trunc_col <- function(x, n = 60) str_trunc(coalesce(x, ""), n)
 
 # ── UI: what the user sees ───────────────────────────────────────────
@@ -183,6 +204,44 @@ ui <- navbarPage(
     )
   ),
 
+  tabPanel("Ingest",
+    sidebarLayout(
+      sidebarPanel(width = 4,
+        checkboxGroupInput("ing_families", "Device families",
+          choices = c("hip_prosthesis", "knee_prosthesis",
+                      "bone_plate", "spinal_fixation"),
+          selected = "bone_plate"),
+        fluidRow(
+          column(6, numericInput("ing_y0", "From year", 2024,
+                                 min = 2010, max = 2026, step = 1)),
+          column(6, numericInput("ing_y1", "To year", 2024,
+                                 min = 2010, max = 2026, step = 1))),
+        textInput("ing_search", "Extra search term (optional)",
+          value = "", placeholder = 'e.g. product_problems:"Corroded"'),
+        helpText("Fields must come from the query dictionary (right).
+                 Everything is validated BEFORE any network call —
+                 a typo fails instantly, with a reason, not after a
+                 silent zero-match download."),
+        actionButton("ing_probe", "Probe this scope",
+                     class = "btn-primary"),
+        actionButton("ing_fetch", "Fetch this scope"),
+        helpText("Probe = free look (counts only, ~seconds per slice).
+                 Fetch downloads into data/raw/ and BLOCKS the browser
+                 ~1–3 min per family-year — keep scopes small here;
+                 the full refresh stays in the Terminal
+                 (`Rscript run_pipeline.R all`). After a fetch, run
+                 load → clean → analyses on the Pipeline tab."),
+        uiOutput("ing_status")
+      ),
+      mainPanel(width = 8,
+        h4("Query dictionary — searchable openFDA fields"),
+        tableOutput("ing_dict"),
+        h4("Log"),
+        verbatimTextOutput("ing_log", placeholder = TRUE)
+      )
+    )
+  ),
+
   tabPanel("Pipeline",
     sidebarLayout(
       sidebarPanel(width = 3,
@@ -229,6 +288,39 @@ ui <- navbarPage(
         br(), br(),
         uiOutput("q_status"),
         DTOutput("q_result")
+      )
+    )
+  ),
+
+  tabPanel("Data",
+    sidebarLayout(
+      sidebarPanel(width = 3,
+        selectInput("dt_table", "Table", choices = DATA_TABLES),
+        helpText("Sort by clicking a column header; filter with the
+                 boxes under the headers. The two big event tables
+                 display without the narrative column (it's huge) —
+                 downloads always contain EVERY column and row."),
+        hr(),
+        h5("Download this table"),
+        downloadButton("dl_csv",  "CSV"),
+        downloadButton("dl_xlsx", "Excel"),
+        downloadButton("dl_json", "JSON"),
+        helpText("clean_events / raw_events are large (tens of MB) —
+                 the download takes a moment to prepare."),
+        hr(),
+        h5("Download a figure"),
+        selectInput("dl_fig_pick", NULL,
+                    choices = basename(Sys.glob("../figures/*.png"))),
+        downloadButton("dl_fig", "PNG"),
+        helpText("Interactive charts also have a camera icon (top
+                 right on hover) that saves exactly what you see."),
+        hr(),
+        h5("Download the report"),
+        downloadButton("dl_report", "Report (HTML)")
+      ),
+      mainPanel(width = 9,
+        h4(textOutput("dt_title")),
+        DTOutput("dt_browse")
       )
     )
   ),
@@ -387,7 +479,7 @@ server <- function(input, output, session) {
                                        input$mc_stages]
     cfg <- pipeline_config()
     # The app lives in app/; the stages assume the project root.
-    owd <- setwd(".."); on.exit(setwd(owd), add = TRUE)
+    owd <- getwd(); on.exit(setwd(owd), add = TRUE); setwd("..")
 
     lines <- character(); times <- data.frame()
     withProgress(message = "Pipeline running", value = 0, {
@@ -462,10 +554,102 @@ server <- function(input, output, session) {
                                      scrollX = TRUE), rownames = FALSE)
   })
 
+  # ---- Ingest tab ----------------------------------------------------
+  output$ing_dict <- renderTable(QUERY_DICT, striped = TRUE)
+  ing_log <- reactiveVal("(no probe or fetch yet)")
+  ing_msg <- reactiveVal(NULL)
+
+  ing_scope_cfg <- function() {
+    cfg <- pipeline_config()
+    cfg$fetch_families  <- input$ing_families
+    cfg$fetch_year_from <- input$ing_y0
+    cfg$fetch_year_to   <- input$ing_y1
+    cfg$fetch_search    <- input$ing_search
+    cfg
+  }
+
+  run_scoped <- function(probe) {
+    chk <- validate_fetch_scope(input$ing_families, input$ing_y0,
+                                input$ing_y1, input$ing_search)
+    if (!chk$ok) { ing_msg(chk$reason); return(invisible()) }
+    ing_msg(NULL)
+    owd <- getwd(); on.exit(setwd(owd), add = TRUE); setwd("..")
+    lines <- character()
+    withProgress(message = if (probe) "Probing scope" else "Fetching scope",
+                 value = 0.4, {
+      tryCatch(
+        withCallingHandlers(
+          stage_fetch(ing_scope_cfg(), probe = probe),
+          message = function(m) {
+            lines <<- c(lines, sub("\\n$", "", conditionMessage(m)))
+            invokeRestart("muffleMessage")
+          }),
+        error = function(e) lines <<- c(lines, paste0("ERROR: ",
+                                                      conditionMessage(e))))
+    })
+    ing_log(paste(lines, collapse = "\n"))
+  }
+  observeEvent(input$ing_probe, run_scoped(probe = TRUE))
+  observeEvent(input$ing_fetch, run_scoped(probe = FALSE))
+
+  output$ing_status <- renderUI({
+    req(ing_msg())
+    tags$p(style = "color: #b30000;", strong("Invalid scope: "), ing_msg())
+  })
+  output$ing_log <- renderText(ing_log())
+
+  # ---- Data tab ------------------------------------------------------
+  dt_data <- reactive({
+    input$mc_reload                       # refresh after pipeline runs
+    tbl <- input$dt_table
+    # The big event tables come to the BROWSER without narrative (it is
+    # enormous); downloads (below) always query the full table fresh.
+    if (tbl %in% c("clean_events", "raw_events")) {
+      cols <- setdiff(dbGetQuery(con,
+        paste0("PRAGMA table_info(", tbl, ")"))$name,
+        c("narrative", "mdr_text"))
+      dbGetQuery(con, paste0("SELECT ", paste(cols, collapse = ", "),
+                             " FROM ", tbl))
+    } else {
+      dbGetQuery(con, paste0("SELECT * FROM ", tbl))
+    }
+  })
+  output$dt_title <- renderText(sprintf("%s — %s rows", input$dt_table,
+    format(nrow(dt_data()), big.mark = ",")))
+  output$dt_browse <- renderDT(
+    datatable(dt_data(), filter = "top", rownames = FALSE,
+              options = list(pageLength = 10, scrollX = TRUE)))
+
+  dl_frame <- function() dbGetQuery(con,
+    paste0("SELECT * FROM ", input$dt_table))   # full table, every column
+  output$dl_csv <- downloadHandler(
+    filename = function() paste0(input$dt_table, ".csv"),
+    contentType = "text/csv",
+    content = function(file) write.csv(dl_frame(), file, row.names = FALSE))
+  output$dl_xlsx <- downloadHandler(
+    filename = function() paste0(input$dt_table, ".xlsx"),
+    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    content = function(file) writexl::write_xlsx(dl_frame(), file))
+  output$dl_json <- downloadHandler(
+    filename = function() paste0(input$dt_table, ".json"),
+    contentType = "application/json",
+    content = function(file) jsonlite::write_json(dl_frame(), file,
+                                                  dataframe = "rows"))
+  output$dl_fig <- downloadHandler(
+    filename = function() input$dl_fig_pick,
+    content = function(file) file.copy(
+      file.path("../figures", input$dl_fig_pick), file))
+  output$dl_report <- downloadHandler(
+    filename = function() "orthowatch_report.html",
+    content = function(file) {
+      req(file.exists("../docs/orthowatch_report.html"))
+      file.copy("../docs/orthowatch_report.html", file)
+    })
+
   # ---- Report tab ----------------------------------------------------
   rp_msg <- reactiveVal(NULL)
   observeEvent(input$rp_render, {
-    owd <- setwd(".."); on.exit(setwd(owd), add = TRUE)
+    owd <- getwd(); on.exit(setwd(owd), add = TRUE); setwd("..")
     withProgress(message = "Rendering report", value = 0.4, {
       res <- tryCatch({ stage_report(pipeline_config()); TRUE },
                       error = function(e) conditionMessage(e))

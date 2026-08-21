@@ -1,3 +1,5 @@
+[← README](../README.md) · [All docs in order](../README.md#the-tutorial-in-order) · [Glossary](GLOSSARY.md)
+
 # 01 — Setup: from a blank laptop to a working workshop
 
 **Prerequisites:** a laptop (Windows or macOS), an internet connection, and

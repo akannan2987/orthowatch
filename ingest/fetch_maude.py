@@ -33,6 +33,7 @@ API KEY (free, 2 minutes)
 """
 
 import argparse
+import re
 import csv
 import datetime as dt
 import json
@@ -91,18 +92,75 @@ MAX_ATTEMPTS = 4          # waits between attempts: 5s, 15s, 45s
 # The key is read from the environment — see 'API KEY' in the header.
 API_KEY = os.environ.get("OPENFDA_API_KEY", "")
 
+# The QUERY DICTIONARY: the openFDA device/event fields this project
+# accepts in an extra --search clause. openFDA only understands ITS
+# field names — anything else silently matches nothing or errors — so
+# we validate against this whitelist BEFORE any network call. Each
+# entry: field -> (what it means, an example clause).
+SEARCHABLE_FIELDS = {
+    "device.generic_name":        ("device type as FDA names it",
+                                   'device.generic_name:(shoulder AND prosthesis)'),
+    "device.brand_name":          ("product/brand name",
+                                   'device.brand_name:ATTUNE'),
+    "device.manufacturer_d_name": ("manufacturer name",
+                                   'device.manufacturer_d_name:ZIMMER'),
+    "device.model_number":        ("model number",
+                                   'device.model_number:12345'),
+    "event_type":                 ("Injury / Malfunction / Death / Other",
+                                   'event_type:Malfunction'),
+    "product_problems":           ("coded problem term",
+                                   'product_problems:"Corroded"'),
+    "mdr_text.text":              ("words in the narrative text",
+                                   'mdr_text.text:(cobalt AND revision)'),
+}
+
+
+def validate_search_clause(clause: str) -> str:
+    """Return '' if the clause is acceptable, else the reason it isn't.
+
+    Accepts one or more field:value terms joined by AND/OR, each field
+    from SEARCHABLE_FIELDS. This is validation-before-network: a typo
+    fails HERE, in milliseconds, with a reason — not after a silent
+    zero-match download.
+    """
+    if not clause.strip():
+        return ""
+    fields = re.findall(r"([A-Za-z_][A-Za-z0-9_.]*)\s*:", clause)
+    if not fields:
+        return ("no field:value term found - write e.g. "
+                "product_problems:\"Corroded\"")
+    bad = [f for f in fields if f not in SEARCHABLE_FIELDS]
+    if bad:
+        return ("unknown field(s): " + ", ".join(sorted(set(bad))) +
+                " - searchable fields: " +
+                ", ".join(SEARCHABLE_FIELDS))
+    return 
+
 # ─────────────────────────────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────────────────────────────
 
 
-def build_search(device_query: str, year: int) -> str:
-    """Combine a device expression with a one-year date window.
+def page_filename(slug: str, tag: str, year: int, page: int) -> str:
+    """THE one place page-file names are made - the writer and the
+    dry-run both call this, so what the dry-run promises is what the
+    writer does. (Born of an incident: a filename claim printed
+    beside the writer drifted from it, and a scoped fetch silently
+    overwrote a full page file.)"""
+    return f"maude_{slug}{tag}_{year}_p{page:03d}.json"
+
+
+def build_search(device_query: str, year: int, extra: str = "") -> str:
+    """Combine a device expression with a one-year date window, plus an
+    optional extra clause (validated against SEARCHABLE_FIELDS).
 
     date_received uses YYYYMMDD strings; [a TO b] is openFDA's
     inclusive range syntax.
     """
-    return f"({device_query}) AND date_received:[{year}0101 TO {year}1231]"
+    s = f"({device_query}) AND date_received:[{year}0101 TO {year}1231]"
+    if extra.strip():
+        s += f" AND ({extra.strip()})"
+    return s
 
 
 def call_api(search: str, limit: int, skip: int) -> requests.Response:
@@ -151,27 +209,28 @@ def get_total(search: str) -> int:
 # ─────────────────────────────────────────────────────────────────────
 
 
-def probe() -> None:
-    """Print how many reports each query/year slice would fetch."""
-    print(f"{'slice':<28}{'reports available':>18}")
+def probe(queries=None, years=None, extra: str = "") -> None:
+    queries = queries or QUERIES
+    years = years or YEARS
+    print(f"{'slice':<28} {'reports available':>18}")
     print("-" * 46)
     grand_total = 0
-    for slug, device_query in QUERIES.items():
-        for year in YEARS:
-            total = get_total(build_search(device_query, year))
+    for slug, device_query in queries.items():
+        for year in years:
+            total = get_total(build_search(device_query, year, extra))
             grand_total += total
-            flag = "  ⚠ over paging ceiling" if total > SKIP_CEILING else ""
-            print(f"{slug + ' ' + str(year):<28}{total:>18,}{flag}")
-            time.sleep(SLEEP_SECONDS)
+            print(f"{slug + ' ' + str(year):<28} {total:>18,}")
+            time.sleep(0.3)
     print("-" * 46)
-    print(f"{'TOTAL':<28}{grand_total:>18,}")
-    est_requests = grand_total // PAGE_SIZE + len(QUERIES) * len(YEARS)
-    allowance = "120,000 (with key)" if API_KEY else "1,000 (no key)"
+    print(f"{'TOTAL':<28} {grand_total:>18,}")
+    est_requests = grand_total // PAGE_SIZE + len(queries) * len(years)
     print(f"\nEstimated download requests: ~{est_requests} "
-          f"(daily allowance: {allowance})")
+          f"(daily allowance: 120,000 (with key))")
 
 
-def fetch_all() -> None:
+def fetch_all(queries=None, years=None, extra: str = "", tag: str = "") -> None:
+    queries = queries or QUERIES
+    years = years or YEARS
     """Download every slice, page by page, and log everything."""
     if not API_KEY:
         print("NOTE: no OPENFDA_API_KEY set. Anonymous traffic is more "
@@ -190,9 +249,9 @@ def fetch_all() -> None:
                           "total_available", "records_fetched",
                           "pages_saved", "status"])
 
-        for slug, device_query in QUERIES.items():
-            for year in YEARS:
-                search = build_search(device_query, year)
+        for slug, device_query in queries.items():
+            for year in years:
+                search = build_search(device_query, year, extra)
                 total = get_total(search)
                 time.sleep(SLEEP_SECONDS)
 
@@ -219,7 +278,13 @@ def fetch_all() -> None:
                     if not results:
                         break
 
-                    out = RAW_DIR / f"maude_{slug}_{year}_p{pages:03d}.json"
+                    out = RAW_DIR / page_filename(slug, tag, year, pages)
+                    # Self-check: an extra-search fetch must write
+                    # ONLY tagged names. If this ever fails, something
+                    # upstream broke - refuse loudly, clobber nothing.
+                    if bool(extra.strip()) != ("_q_" in out.name):
+                        raise RuntimeError(
+                            "filename tag self-check failed for " + out.name)
                     with open(out, "w", encoding="utf-8") as f:
                         json.dump(resp.json(), f)
 
@@ -241,10 +306,54 @@ def fetch_all() -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fetch MAUDE orthopedic reports")
     parser.add_argument("--probe", action="store_true",
-                        help="only show report counts; download nothing")
+                        help="show counts only; download nothing")
+    parser.add_argument("--families", default="",
+                        help="comma-separated subset of: " + ",".join(QUERIES))
+    parser.add_argument("--year-from", type=int, default=None,
+                        help="first year (default: config block)")
+    parser.add_argument("--year-to", type=int, default=None,
+                        help="last year, inclusive (default: config block)")
+    parser.add_argument("--search", default="",
+                        help="extra clause ANDed onto every query, e.g. "
+                             "product_problems:\"Corroded\" - fields must be "
+                             "in the query dictionary (SEARCHABLE_FIELDS)")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="print the search expressions and file names "
+                             "this scope would use; no network at all")
     args = parser.parse_args()
+
+    # Validation-before-network: every scope problem fails here, with a
+    # reason, before a single request is made.
+    queries = QUERIES
+    if args.families:
+        wanted = [f.strip() for f in args.families.split(",") if f.strip()]
+        bad = [f for f in wanted if f not in QUERIES]
+        if bad:
+            sys.exit("unknown family: " + ", ".join(bad) +
+                     " - known: " + ", ".join(QUERIES))
+        queries = {k: QUERIES[k] for k in wanted}
+    years = YEARS
+    y0 = args.year_from if args.year_from is not None else min(YEARS)
+    y1 = args.year_to if args.year_to is not None else max(YEARS)
+    if not (2010 <= y0 <= y1 <= 2026):
+        sys.exit(f"year range {y0}-{y1} invalid (2010-2026, from <= to)")
+    years = range(y0, y1 + 1)
+    err = validate_search_clause(args.search)
+    if err:
+        sys.exit("bad --search: " + err)
+    tag = "_q" if args.search.strip() else ""
+
+    if args.dry_run:
+        print("dry run - the scope resolves to:")
+        for slug, q in queries.items():
+            for year in years:
+                print(" ", build_search(q, year, args.search))
+        print("first file would be named:",
+              page_filename(sorted(queries)[0], tag, min(years), 0))
+        sys.exit(0)
+
     try:
-        probe() if args.probe else fetch_all()
-    except requests.exceptions.ConnectionError:
-        sys.exit("Network error: could not reach api.fda.gov. "
-                 "Check your internet connection (or corporate proxy).")
+        probe(queries, years, args.search) if args.probe \
+            else fetch_all(queries, years, args.search, tag)
+    except KeyboardInterrupt:
+        sys.exit("\ninterrupted - partial pages are safe to keep or delete")

@@ -341,3 +341,36 @@ p9 <- ggplot(bl) +
         plot.title.position = "plot")
 ggsave("docs/img/blocking_single_lane.png", p9, width = 9.4, height = 3.6, dpi = 150)
 cat("blocking diagram written\n")
+
+# ── 10. Validate before the network (Phase 8b) ───────────────────────
+vb <- tibble(
+  x = c(1.4, 3.9, 6.4, 8.9),
+  y = 1.6,
+  lab = c("scope typed in\nfamilies, years,\nextra search term",
+          "WHITELIST CHECK\nquery dictionary:\nfields the API knows",
+          "PROBE (free look)\ncounts per slice,\nnothing saved",
+          "FETCH\npages land in\ndata/raw/"),
+  fill = c("#fff3e0", "#f5e6e6", "#e8f0f8", "#e5f2e5"))
+p10 <- ggplot(vb) +
+  geom_rect(aes(xmin = x - 1.1, xmax = x + 1.1, ymin = y - 0.55,
+                ymax = y + 0.55), fill = vb$fill, color = "grey40",
+            linewidth = 0.4) +
+  geom_text(aes(x = x, y = y, label = lab), size = 3.0, lineheight = 1.0) +
+  annotate("segment", x = c(2.55, 5.05, 7.55), xend = c(2.75, 5.25, 7.75),
+           y = 1.6, yend = 1.6,
+           arrow = arrow(length = unit(0.16, "cm")), color = "grey40") +
+  annotate("text", x = 3.9, y = 0.62, size = 2.9, color = "#b30000",
+           label = "unknown field / bad years -> refused HERE, in milliseconds, with a reason") +
+  annotate("segment", x = 3.9, xend = 3.9, y = 0.78, yend = 1.02,
+           arrow = arrow(length = unit(0.14, "cm"), ends = "first"),
+           color = "#b30000", linetype = "dashed") +
+  scale_x_continuous(limits = c(0.2, 10.1)) +
+  scale_y_continuous(limits = c(0.3, 2.5)) +
+  labs(title = "Validate before the network",
+       subtitle = "The API only understands its own field names; a typo would fail as a silent zero-match download minutes later.\nSo the scope is checked against the query dictionary FIRST - errors are instant, informative, and free.") +
+  theme_void(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(color = "grey30", size = 9.5),
+        plot.title.position = "plot")
+ggsave("docs/img/validate_before_network.png", p10, width = 9.4, height = 2.9, dpi = 150)
+cat("validation diagram written\n")

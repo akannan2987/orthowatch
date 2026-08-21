@@ -1,3 +1,5 @@
+[← README](../README.md) · [All docs in order](../README.md#the-tutorial-in-order) · [Glossary](GLOSSARY.md)
+
 # 06 — Phase 5: Text mining — the narratives get their say
 
 **Prerequisites:** Phases 1–4 complete; four tables in the

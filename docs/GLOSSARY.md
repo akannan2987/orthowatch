@@ -1,3 +1,5 @@
+[← README](../README.md) · [All docs in order](../README.md#the-tutorial-in-order)
+
 # Glossary — every term in this project, in plain words
 
 No prior knowledge assumed. If a word in any doc, script, or comment
@@ -468,3 +470,43 @@ shows the result. Powerful and hazardous — hence the two locks.
 loaded tables). When the ground truth changes (a pipeline run), the
 state must be deliberately swapped — here a `reactiveVal` refilled
 by a Reload button, so every dependent output recomputes.
+
+## The data-access words (added in Phase 8b)
+
+**Query dictionary** — the whitelist of API fields a search may use,
+each with meaning and example. APIs only understand their own
+vocabulary; the dictionary is that vocabulary, written down and
+enforced.
+
+**Validate before the network** — check user input against the
+dictionary locally, so errors are instant and informative instead of
+silent zero-match downloads minutes later.
+
+**Dry run** — resolve and print exactly what an action WOULD do
+(here: the API queries a scope builds) without doing it. The
+developer's look-before-you-leap.
+
+**CLI arguments** — the `--flag value` settings a script accepts on
+its command line; how one program (R) hands a scope to another
+(Python) across the seam.
+
+**CSV / XLSX / JSON** — the three export dialects: plain rows for
+everything, spreadsheets for people, structured text for programs.
+
+**Export** — data leaving the system in a format someone else's tool
+can open. An instrument without exports is a silo.
+
+**Environment variable** — a named value a process carries, inherited
+*at birth from its parent* and from nowhere else. An `export` in one
+Terminal window does not reach an app launched from the Dock — they
+have different parents.
+
+**.Renviron** — a file R reads at every session start, setting
+environment variables for the session and everything it launches.
+The reliable home for an API key in an R project — and always
+gitignored, because secrets never enter version control.
+
+**on.exit()** — R's "no matter how this function ends, run this"
+hook. House rule learned the hard way: register it *before* the
+risky action it cleans up after, so even an interrupt in between
+cannot leave the mess behind.

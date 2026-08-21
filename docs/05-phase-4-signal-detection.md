@@ -1,3 +1,5 @@
+[← README](../README.md) · [All docs in order](../README.md#the-tutorial-in-order) · [Glossary](GLOSSARY.md)
+
 # 05 — Phase 4: Signal detection — which problems belong to which devices?
 
 **Prerequisites:** Phases 1–3 complete; `clean_events` and

@@ -1,3 +1,5 @@
+[← README](../README.md) · [All docs in order](../README.md#the-tutorial-in-order) · [Glossary](GLOSSARY.md)
+
 # 08 — Phase 7: The pipeline and the report — reproducibility, demonstrated
 
 **Prerequisites:** Phases 1–6 complete and committed; the app working.
