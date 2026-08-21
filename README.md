@@ -353,7 +353,18 @@ with its expected output. Read in order:
 | 08 | [Phase 7 — Pipeline & report](docs/08-phase-7-pipeline-report.md) | Config-driven stages, the test gate, the executable report |
 | 09 | [Phase 8 — Mission Control](docs/09-phase-8-mission-control.md) | The workbench: run stages, query read-only, render on demand |
 | 10 | [Phase 8b — Scoped ingestion & data access](docs/10-phase-8b-scoped-ingestion-data-access.md) | Query dictionary, validate-before-network, exports |
+| — | [Query cookbook](docs/QUERY_COOKBOOK.md) | Ready-to-paste SQL for the app's Query tab |
+| — | [SQL cookbook](docs/QUERY_COOKBOOK.md) | Ready-to-run queries for the Query tab, from first SELECT to vintages |
 | — | [Glossary](docs/GLOSSARY.md) | Every term, plain language, by phase |
+
+**How to read the tutorial:** the docs narrate the build *as it
+happened* — each phase's test counts, file lists, and "copy these
+files" steps are snapshots of their moment. A fresh clone of this
+repo holds the *finished* instrument (all files present, the full
+test suite green), so follow the docs as the story and rationale of
+the construction while running the finished system; the checkpoints'
+behaviors all still work, only the historical counts differ. To
+literally re-live a phase, check out its commit from the build log.
 
 ## Bumps hit along the way (kept on purpose)
 

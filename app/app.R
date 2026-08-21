@@ -307,6 +307,25 @@ ui <- navbarPage(
   tabPanel("Query",
     sidebarLayout(
       sidebarPanel(width = 3,
+        selectInput("q_example", "Load an example", width = "100%",
+          choices = c("- pick a query -" = "",
+            "Reports per family" =
+"SELECT device_family, COUNT(*) AS reports\nFROM clean_events GROUP BY device_family ORDER BY reports DESC",
+            "Event-type mix per family" =
+"SELECT device_family, event_type, COUNT(*) AS n\nFROM clean_events GROUP BY device_family, event_type\nORDER BY device_family, n DESC",
+            "Top problems in one family" =
+"SELECT product_problems, COUNT(*) AS n\nFROM clean_events WHERE device_family = 'Hip prosthesis'\nGROUP BY product_problems ORDER BY n DESC LIMIT 20",
+            "Flagged months, worst first" =
+"SELECT device_family, year_month, n, status\nFROM monthly_trends\nWHERE run_id = (SELECT MAX(run_id) FROM monthly_trends)\n  AND status != 'within limits'\nORDER BY n DESC",
+            "Evans signals, one family" =
+"SELECT product_problem, a, ROUND(prr,1) AS prr, ROUND(ror,1) AS ror\nFROM signal_stats\nWHERE run_id = (SELECT MAX(run_id) FROM signal_stats)\n  AND evans_signal = 1 AND device_family = 'Hip prosthesis'\nORDER BY prr DESC",
+            "Distinctive words, one family" =
+"SELECT word, n, ROUND(per_10k,1) AS per_10k, ROUND(ratio,1) AS ratio\nFROM narrative_terms\nWHERE run_id = (SELECT MAX(run_id) FROM narrative_terms)\n  AND device_family = 'Spinal fixation' AND per_10k >= 1\nORDER BY ratio DESC LIMIT 20",
+            "The run ledger" =
+"SELECT run_at, kind, detail, outcome, seconds\nFROM run_history ORDER BY run_at DESC")),
+        helpText(HTML("More ready-to-run queries: the
+          <a href='https://github.com/akannan2987/orthowatch/blob/master/docs/QUERY_COOKBOOK.md'
+          target='_blank'>SQL cookbook</a> (docs/QUERY_COOKBOOK.md).")),
         helpText("Read-only by construction: only a single SELECT (or
                  WITH) runs, on a connection that cannot write —
                  two independent locks. Results cap at 200 rows."),
@@ -707,6 +726,11 @@ server <- function(input, output, session) {
     trunc <- isTRUE(attr(r$data, "truncated"))
     tags$p(sprintf("%d row(s)%s.", nrow(r$data),
                    if (trunc) " (capped at 200)" else ""))
+  })
+
+  observeEvent(input$q_example, {
+    req(nzchar(input$q_example))
+    updateTextAreaInput(session, "q_sql", value = input$q_example)
   })
 
   output$q_result <- renderDT({
