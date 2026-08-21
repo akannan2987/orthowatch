@@ -407,6 +407,7 @@ with its expected output. Read in order:
 | — | [Query cookbook](docs/QUERY_COOKBOOK.md) | Ready-to-paste SQL for the app's Query tab |
 | 13 | [Phase 9 — Packaging](docs/13-phase-9-packaging.md) | Versions, release notes, roadmap, license, the 1.0 tag |
 | — | [SQL cookbook](docs/QUERY_COOKBOOK.md) | Ready-to-run queries for the Query tab, from first SELECT to vintages |
+| — | [Uninstall](docs/UNINSTALL.md) | Removing the project completely and safely |
 | — | [Glossary](docs/GLOSSARY.md) | Every term, plain language, by phase |
 
 **How to read the tutorial:** the docs narrate the build *as it
@@ -638,7 +639,8 @@ R -e 'shiny::runApp("app")'     # the instrument
 ```
 
 For the guided path — every step explained from a blank machine —
-start at [`docs/01-setup.md`](docs/01-setup.md). Individual pieces,
+start at [`docs/01-setup.md`](docs/01-setup.md). To remove
+everything cleanly later: [`docs/UNINSTALL.md`](docs/UNINSTALL.md). Individual pieces,
 once set up:
 
 ```bash

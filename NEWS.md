@@ -8,6 +8,9 @@
   documented step.
 - README gains a Quick start; roadmap gains the installable-package
   / Docker rung (a 2.0-scale reorganization, honestly deferred).
+- `docs/UNINSTALL.md`: complete, safe removal — the self-contained
+  footprint, the four optional leftovers, and what cannot be
+  recovered (the raw snapshot; MAUDE revises in place).
 
 ## v1.0.0 — 2026-08-21 — "The finished instrument"
 
