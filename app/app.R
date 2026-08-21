@@ -134,7 +134,12 @@ trunc_col <- function(x, n = 60) str_trunc(coalesce(x, ""), n)
 
 # ── UI: what the user sees ───────────────────────────────────────────
 ui <- navbarPage(
-  title = "OrthoWatch",
+  # The brand: logo (app/www/ is Shiny's static-file home) + wordmark.
+  # windowTitle keeps the browser tab as plain text.
+  title = div(img(src = "logo_orthowatch.png", height = "30px",
+                  style = "margin-right:8px; margin-top:-6px;"),
+              "OrthoWatch"),
+  windowTitle = "OrthoWatch",
 
   tabPanel("Overview",
     fluidRow(column(8, offset = 2,

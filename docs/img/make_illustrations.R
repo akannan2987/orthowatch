@@ -503,3 +503,95 @@ p14 <- ggplot(fi) +
         plot.title.position = "plot")
 ggsave("docs/img/finished_instrument.png", p14, width = 9.4, height = 3.8, dpi = 150)
 cat("phase 9 figures written\n")
+
+# ── 15. Branding: logo + cover (Phase 9) ─────────────────────────────
+# A stylized bone under the lens - the specimen being examined; the
+# control chart is its reading. One red tower: the origin story.
+bone_df <- function(cx, cy, len, h) {
+  r <- h * 0.72; dx <- len / 2
+  list(shaft = c(cx - dx, cx + dx, cy - h/2, cy + h/2),
+       lobes = tibble(x = c(cx-dx, cx-dx, cx+dx, cx+dx),
+                      y = c(cy + h*0.42, cy - h*0.42, cy + h*0.42, cy - h*0.42),
+                      r = r))
+}
+add_bone <- function(p, cx, cy, len, h, fill = "#dbe4ee") {
+  # Lobes as data-unit circles (polygons) - point sizes are in mm,
+  # which is why the first draft lost its lobes. Units matter.
+  b <- bone_df(cx, cy, len, h)
+  th <- seq(0, 2*pi, length.out = 60)
+  for (i in seq_len(4)) {
+    p <- p + annotate("polygon",
+      x = b$lobes$x[i] + b$lobes$r[i] * cos(th),
+      y = b$lobes$y[i] + b$lobes$r[i] * sin(th), fill = fill)
+  }
+  p + annotate("rect", xmin = b$shaft[1], xmax = b$shaft[2],
+               ymin = b$shaft[3], ymax = b$shaft[4], fill = fill)
+}
+xs <- seq(0.28, 0.72, length.out = 11)
+ys <- c(0.46,0.44,0.47,0.45,0.68,0.46,0.44,0.47,0.45,0.46,0.44)
+pts <- tibble(x = xs, y = ys)
+logo <- ggplot()
+logo <- add_bone(logo, 0.5, 0.30, 0.34, 0.055)          # the specimen
+logo <- logo +
+  annotate("path", x = 0.5 + 0.42*cos(seq(0,2*pi,length.out=200)),
+           y = 0.5 + 0.42*sin(seq(0,2*pi,length.out=200)),
+           linewidth = 5.2, color = "#1f77b4") +
+  annotate("rect", xmin = 0.22, xmax = 0.78, ymin = 0.415, ymax = 0.50,
+           fill = "#e2e8f0") +
+  annotate("segment", x = 0.22, xend = 0.78, y = 0.458, yend = 0.458,
+           linetype = "22", color = "#64748b", linewidth = 0.7) +
+  geom_line(data = pts, aes(x, y), color = "#334155", linewidth = 1.1) +
+  geom_point(data = pts, aes(x, y),
+             color = c(rep("#334155",4),"#d62728",rep("#334155",6)),
+             size = c(rep(2.6,4),5.2,rep(2.6,6))) +
+  annotate("segment", x = 0.5 + 0.42*cos(-pi/4), y = 0.5 + 0.42*sin(-pi/4),
+           xend = 0.5 + 0.56*cos(-pi/4), yend = 0.5 + 0.56*sin(-pi/4),
+           linewidth = 5.2, color = "#1f77b4", lineend = "round") +
+  coord_fixed(xlim = c(0,1.08), ylim = c(-0.02,1.02)) + theme_void()
+ggsave("docs/img/logo_orthowatch.png", logo, width = 4, height = 4,
+       dpi = 220, bg = "transparent")
+
+cover <- ggplot() +
+  annotate("rect", xmin=0, xmax=16, ymin=0, ymax=4.0, fill="#f8fafc")
+cover <- add_bone(cover, 13.4, 1.28, 3.2, 0.16, fill = "#e7edf5")  # under the motif
+cover <- cover +
+  annotate("rect", xmin = 11.1, xmax = 15.7, ymin = 1.05, ymax = 2.05,
+           fill = "#eef2f7", alpha = 0.55) +
+  annotate("segment", x=11.1, xend=15.7, y=1.5, yend=1.5, linetype="22",
+           color="#cbd5e1", linewidth=0.8) +
+  geom_line(data = tibble(x = seq(11.35,15.45,length.out=11),
+                          y = c(1.58,1.42,1.62,1.5,3.05,1.58,1.42,1.62,1.5,1.58,1.42)),
+            aes(x,y), color = "#94a3b8", linewidth = 1.1) +
+  geom_point(data = tibble(x = seq(11.35,15.45,length.out=11),
+                           y = c(1.58,1.42,1.62,1.5,3.05,1.58,1.42,1.62,1.5,1.58,1.42)),
+             aes(x,y),
+             color = c(rep("#94a3b8",4),"#d62728",rep("#94a3b8",6)),
+             size = c(rep(2.6,4),5.2,rep(2.6,6)))
+cover <- add_bone(cover, 1.85, 1.62, 0.85, 0.09)                   # in the badge
+cover <- cover +
+  annotate("path", x = 1.85 + 1.05*cos(seq(0,2*pi,length.out=200)),
+           y = 2.0 + 1.05*sin(seq(0,2*pi,length.out=200)),
+           linewidth = 3.4, color = "#1f77b4") +
+  annotate("segment", x = 1.85+1.05*cos(-pi/4), y = 2.0+1.05*sin(-pi/4),
+           xend = 1.85+1.42*cos(-pi/4), yend = 2.0+1.42*sin(-pi/4),
+           linewidth = 3.4, color = "#1f77b4", lineend = "round") +
+  annotate("rect", xmin=1.18, xmax=2.52, ymin=1.79, ymax=2.12, fill="#e2e8f0") +
+  geom_line(data = tibble(x=seq(1.24,2.46,length.out=9),
+                          y=c(1.97,1.9,2.0,1.93,2.58,1.97,1.9,2.0,1.93)),
+            aes(x,y), color="#334155", linewidth=0.85) +
+  geom_point(data = tibble(x=seq(1.24,2.46,length.out=9),
+                           y=c(1.97,1.9,2.0,1.93,2.58,1.97,1.9,2.0,1.93)),
+             aes(x,y), color=c(rep("#334155",4),"#d62728",rep("#334155",4)),
+             size=c(rep(1.5,4),3,rep(1.5,4))) +
+  annotate("text", x = 3.55, y = 2.42, hjust = 0, size = 14.5,
+           label = "Ortho", color = "#334155") +
+  annotate("text", x = 5.98, y = 2.42, hjust = 0, size = 14.5,
+           label = "Watch", fontface = "bold", color = "#1f77b4") +
+  annotate("text", x = 3.6, y = 1.62, hjust = 0, size = 4.5, color = "#64748b",
+           label = "Open post-market surveillance of orthopedic device reports") +
+  annotate("text", x = 3.6, y = 1.2, hjust = 0, size = 3.5, color = "#94a3b8",
+           label = "FDA MAUDE  |  control charts  |  disproportionality signals  |  text mining  |  R + Python") +
+  coord_fixed(xlim=c(0,16), ylim=c(0.55,3.6), expand = FALSE) + theme_void()
+ggsave("docs/img/cover_orthowatch.png", cover, width = 12.8, height = 2.44,
+       dpi = 150, bg = "#f8fafc")
+cat("branding written\n")

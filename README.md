@@ -1,5 +1,7 @@
 # OrthoWatch 🦴📊
 
+![OrthoWatch](docs/img/cover_orthowatch.png)
+
 **v1.0.0** · ![R](https://img.shields.io/badge/R-4.x-276DC3) ![Python](https://img.shields.io/badge/Python-3.x-3776AB) ![tests](https://img.shields.io/badge/tests-92%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-blue) · [Live report](https://akannan2987.github.io/orthowatch/orthowatch_report.html) · [Release notes](NEWS.md)
 
 ![R](https://img.shields.io/badge/R-tidyverse%20%2B%20Shiny-276DC3?logo=r)
