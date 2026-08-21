@@ -404,6 +404,15 @@ Phase 1 guide's troubleshooting section:
 - The data service caps how far one search can page through results
   (~26,000 reports per query); the fetch log records honestly
   whenever a slice was cut off at that ceiling.
+- MAUDE is also *revised in place* — observed directly, twice over,
+  in this project: one slice re-fetched *days* after the original
+  came back with identical report counts but amended narrative text
+  (37 rows of the vocabulary table shifted — the FDA had edited
+  prose while every total stayed fixed), while a full re-fetch of
+  the entire scope run *hours* after its baseline was byte-for-byte
+  identical across all 95 files. Revision happens on a scale of
+  days, not hours; frozen raw snapshots plus a pipeline that prints
+  its counts is how drift that subtle gets noticed at all.
 - In 2026 the FDA began consolidating MAUDE into a newer system
   (AEMS); the data service is expected to remain compatible.
 

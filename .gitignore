@@ -45,3 +45,6 @@ Rplots.pdf
 
 # API keys and other secrets - never committed
 .Renviron
+
+# raw-data snapshots (parachutes for refresh drills) - never committed
+data/raw_snapshot*/
