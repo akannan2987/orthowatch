@@ -39,6 +39,15 @@ pipeline_config <- function() {
     fetch_search    = "",     # extra clause, fields from the query dictionary
 
     # ── behavior ─────────────────────────────────────────────────────
-    publish_interactive = TRUE   # copy interactive HTML to docs/ (Pages)
+    publish_interactive = TRUE,  # copy interactive HTML to docs/ (Pages)
+    keep_runs = 10,              # result-table vintages retained per table
+
+    # ── analysis scope (NULL = everything: all families, all years) ──
+    # THE scope a run computes over. Set these and the run's vintage
+    # contains ONLY that slice - selecting it in the app shows exactly
+    # what was analyzed, nothing else.
+    analysis_families  = NULL,   # e.g. c("Spinal fixation")
+    analysis_year_from = NULL,   # e.g. "2024"
+    analysis_year_to   = NULL    # e.g. "2024"
   )
 }

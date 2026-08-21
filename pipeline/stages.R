@@ -150,13 +150,39 @@ stage_clean <- function(cfg = pipeline_config()) {
   })
 }
 
+.scoped_events <- function(con, cols, cfg) {
+  # THE analysis scope, applied in one place: which families, which
+  # years a run computes over. NULL scope = everything (the default).
+  sql <- paste0("SELECT ", paste(cols, collapse = ", "),
+                " FROM clean_events WHERE 1=1")
+  params <- list()
+  fams <- cfg$analysis_families
+  if (!is.null(fams) && length(fams) > 0) {
+    sql <- paste0(sql, " AND device_family IN (",
+                  paste(rep("?", length(fams)), collapse = ","), ")")
+    params <- c(params, as.list(fams))
+  }
+  if (!is.null(cfg$analysis_year_from)) {
+    sql <- paste0(sql, " AND year_month >= ?")
+    params <- c(params, paste0(cfg$analysis_year_from, "-01"))
+  }
+  if (!is.null(cfg$analysis_year_to)) {
+    sql <- paste0(sql, " AND year_month <= ?")
+    params <- c(params, paste0(cfg$analysis_year_to, "-12"))
+  }
+  if (length(params) == 0)
+    DBI::dbGetQuery(con, sql) |> tibble::as_tibble()
+  else
+    DBI::dbGetQuery(con, sql, params = params) |> tibble::as_tibble()
+}
+
 # ── Stage: trend ─────────────────────────────────────────────────────
 stage_trend <- function(cfg = pipeline_config()) {
   .with_db(cfg, function(con) {
-    events <- DBI::dbGetQuery(con,
-      "SELECT report_number, device_family, year_month FROM clean_events") |>
-      tibble::as_tibble()
-    m <- count_monthly(events, families = cfg$families) |> add_control_limits()
+    events <- .scoped_events(con,
+      c("report_number", "device_family", "year_month"), cfg)
+    fams <- cfg$analysis_families %||% cfg$families
+    m <- count_monthly(events, families = fams) |> add_control_limits()
 
     dir.create(cfg$figures_dir, showWarnings = FALSE)
     ggplot2::ggsave(file.path(cfg$figures_dir, "trend_by_family.png"),
@@ -169,11 +195,12 @@ stage_trend <- function(cfg = pipeline_config()) {
                 file.path(cfg$interactive_dir, "trend_by_family.html"),
                 overwrite = TRUE)
     }
-    DBI::dbWriteTable(con, "monthly_trends",
+    write_versioned(con, "monthly_trends",
       m |> dplyr::mutate(year_month = format(month_date, "%Y-%m")) |>
         dplyr::select(device_family, year_month, n, center, sigma,
                       ucl, lcl, status),
-      overwrite = TRUE)
+      run_id = cfg$run_id %||% new_run_id(),
+      keep_runs = cfg$keep_runs %||% 10)
     .stage_msg("[trend] monthly_trends: %d rows; %d flagged",
                nrow(m), sum(m$status != "within limits"))
     invisible(list(rows = nrow(m)))
@@ -183,9 +210,8 @@ stage_trend <- function(cfg = pipeline_config()) {
 # ── Stage: signals ───────────────────────────────────────────────────
 stage_signals <- function(cfg = pipeline_config()) {
   .with_db(cfg, function(con) {
-    events <- DBI::dbGetQuery(con,
-      "SELECT report_number, device_family, product_problems FROM clean_events") |>
-      tibble::as_tibble()
+    events <- .scoped_events(con,
+      c("report_number", "device_family", "product_problems"), cfg)
     s <- signal_stats(events, min_a = cfg$min_a,
                       min_problem_total = cfg$min_problem_total)
 
@@ -200,9 +226,10 @@ stage_signals <- function(cfg = pipeline_config()) {
                 file.path(cfg$interactive_dir, "signals_top.html"),
                 overwrite = TRUE)
     }
-    DBI::dbWriteTable(con, "signal_stats",
+    write_versioned(con, "signal_stats",
       s |> dplyr::mutate(evans_signal = as.integer(evans_signal)),
-      overwrite = TRUE)
+      run_id = cfg$run_id %||% new_run_id(),
+      keep_runs = cfg$keep_runs %||% 10)
     .stage_msg("[signals] signal_stats: %d pairs; %d Evans signals",
                nrow(s), sum(s$evans_signal))
     invisible(list(rows = nrow(s)))
@@ -214,9 +241,8 @@ stage_terms <- function(cfg = pipeline_config()) {
   # The heavy one: tokenizing ~84K narratives takes a minute or two
   # and real RAM at full scope.
   .with_db(cfg, function(con) {
-    events <- DBI::dbGetQuery(con,
-      "SELECT report_number, device_family, narrative FROM clean_events") |>
-      tibble::as_tibble()
+    events <- .scoped_events(con,
+      c("report_number", "device_family", "narrative"), cfg)
     d <- tokenize_narratives(events) |>
       count_terms() |>
       distinctive_terms(min_total = cfg$min_total_terms)
@@ -232,9 +258,10 @@ stage_terms <- function(cfg = pipeline_config()) {
                 file.path(cfg$interactive_dir, "narrative_terms.html"),
                 overwrite = TRUE)
     }
-    DBI::dbWriteTable(con, "narrative_terms",
+    write_versioned(con, "narrative_terms",
       d |> dplyr::select(device_family, word, n, per_10k, ratio, log2_ratio),
-      overwrite = TRUE)
+      run_id = cfg$run_id %||% new_run_id(),
+      keep_runs = cfg$keep_runs %||% 10)
     .stage_msg("[terms] narrative_terms: %d (family, word) rows", nrow(d))
     invisible(list(rows = nrow(d)))
   })

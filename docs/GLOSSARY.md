@@ -530,3 +530,27 @@ restarts and serves both the app and the Terminal.
 per-run copies of every result table so old runs remain viewable.
 Powerful, storage-hungry, touches every query — a phase, not a
 patch.
+
+## The versioning words (added in Phase 8d)
+
+**Vintage / versioned results** — one table, many labeled sets of
+rows: each pipeline run appends its results tagged with its run id
+instead of overwriting its predecessor. A wine rack, not a
+whiteboard.
+
+**Run id** — the timestamp-named label (`run_20260821_150000`) tying
+a ledger line to its result vintage; sorts chronologically as a
+plain string.
+
+**Migration (schema)** — changing a table's shape in place without
+losing its contents: here, adding `run_id` and labeling existing
+rows `legacy`.
+
+**Idempotent** — doing it twice equals doing it once: a vintage
+write first clears its own id's rows, so retries and reruns are
+safe.
+
+**Retention policy** — deliberate forgetting on a schedule
+(`keep_runs`): the newest N vintages stay, older ones age out —
+instead of accidental forgetting on every run, or a database that
+grows forever.

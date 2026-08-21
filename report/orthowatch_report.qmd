@@ -31,16 +31,17 @@ suppressPackageStartupMessages({
 source("R/trending.R")
 source("R/signal_detection.R")
 source("R/text_mining.R")
+source("R/run_history.R")
 
 con <- dbConnect(RSQLite::SQLite(), "data/processed/orthowatch.db")
 
-monthly <- dbGetQuery(con, "SELECT * FROM monthly_trends") |>
+monthly <- read_result(con, "monthly_trends") |>
   as_tibble() |>
   mutate(month_date = as.Date(paste0(year_month, "-01")))
-signals <- dbGetQuery(con, "SELECT * FROM signal_stats") |>
+signals <- read_result(con, "signal_stats") |>
   as_tibble() |>
   mutate(evans_signal = as.logical(evans_signal))
-terms <- dbGetQuery(con, "SELECT * FROM narrative_terms") |> as_tibble()
+terms <- read_result(con, "narrative_terms") |> as_tibble()
 fam_counts <- dbGetQuery(con,
   "SELECT device_family, COUNT(*) AS n FROM clean_events
    GROUP BY device_family ORDER BY n DESC") |> as_tibble()

@@ -37,3 +37,42 @@ test_that("long summaries are truncated, not refused", {
   record_run(tmp, "pipeline", "all", "ok", strrep("x", 5000))
   expect_lte(nchar(read_run_history(tmp)$summary[1]), 2000)
 })
+
+test_that("versioned writes keep vintages, migrate legacy, and retain N", {
+  tmp <- tempfile(fileext = ".db")
+  con <- DBI::dbConnect(RSQLite::SQLite(), tmp)
+  # a pre-8d table: no run_id column
+  DBI::dbWriteTable(con, "monthly_trends", data.frame(x = 1:3))
+
+  write_versioned(con, "monthly_trends", data.frame(x = 4:5), "run_20260821_090000")
+  write_versioned(con, "monthly_trends", data.frame(x = 6:9), "run_20260821_100000")
+
+  ids <- result_vintages(con, "monthly_trends")
+  expect_equal(ids, c("run_20260821_100000", "run_20260821_090000", "legacy"))
+
+  expect_equal(nrow(read_result(con, "monthly_trends")), 4)          # latest
+  expect_equal(read_result(con, "monthly_trends",
+                           "run_20260821_090000")$x, 4:5)            # chosen
+  expect_equal(read_result(con, "monthly_trends", "legacy")$x, 1:3)  # migrated
+  expect_false("run_id" %in% names(read_result(con, "monthly_trends")))
+
+  # rerun same id replaces its own vintage only (idempotent)
+  write_versioned(con, "monthly_trends", data.frame(x = 10), "run_20260821_100000")
+  expect_equal(read_result(con, "monthly_trends")$x, 10)
+
+  # retention trims oldest first ('legacy' ages out)
+  write_versioned(con, "monthly_trends", data.frame(x = 11),
+                  "run_20260821_110000", keep_runs = 2)
+  expect_equal(result_vintages(con, "monthly_trends"),
+               c("run_20260821_110000", "run_20260821_100000"))
+  DBI::dbDisconnect(con)
+})
+
+test_that("run ids sort chronologically and the ledger carries them", {
+  expect_match(new_run_id(), "^run_\\d{8}_\\d{6}$")
+  tmp <- tempfile(fileext = ".db")
+  con <- DBI::dbConnect(RSQLite::SQLite(), tmp)
+  DBI::dbWriteTable(con, "t", data.frame(x = 1)); DBI::dbDisconnect(con)
+  record_run(tmp, "pipeline", "trend", "ok", run_id = "run_20260821_120000")
+  expect_equal(read_run_history(tmp)$run_id[1], "run_20260821_120000")
+})

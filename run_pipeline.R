@@ -43,7 +43,9 @@ if (length(unknown) > 0)
 wanted <- names(PIPELINE_STAGES)[names(PIPELINE_STAGES) %in% wanted]
 
 cfg <- pipeline_config()
-message("== OrthoWatch pipeline ==  stages: ", paste(wanted, collapse = " -> "))
+cfg$run_id <- new_run_id()     # one id names this whole run's vintage
+message("== OrthoWatch pipeline ==  run ", cfg$run_id,
+        "  stages: ", paste(wanted, collapse = " -> "))
 
 timings <- data.frame(stage = character(), seconds = numeric())
 run_ok <- TRUE
@@ -59,12 +61,13 @@ tryCatch({
   run_ok <<- FALSE
   # An honest ledger keeps its bad days - record, then still fail loudly.
   try(record_run(cfg$db_path, "pipeline", paste(wanted, collapse = ", "),
-                 "error", summary = conditionMessage(e)), silent = TRUE)
+                 "error", summary = conditionMessage(e),
+                 run_id = cfg$run_id), silent = TRUE)
   stop(e)
 })
 
 record_run(cfg$db_path, "pipeline", paste(wanted, collapse = ", "), "ok",
            summary = paste(timings$stage, timings$seconds, collapse = "; "),
-           seconds = sum(timings$seconds))
+           seconds = sum(timings$seconds), run_id = cfg$run_id)
 message("\n== pipeline complete ==")
 print(timings, row.names = FALSE)

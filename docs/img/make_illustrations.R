@@ -414,3 +414,37 @@ p11 <- ggplot(sl) +
         plot.title.position = "plot")
 ggsave("docs/img/state_vs_ledger.png", p11, width = 9.2, height = 4.1, dpi = 150)
 cat("state-vs-ledger diagram written\n")
+
+# ── 12. One table, many vintages (Phase 8d) ──────────────────────────
+vt <- tibble(
+  x = 5, y = c(2.9, 2.1, 1.3),
+  lab = c("run_20260821_1500   ← latest (the default view)",
+          "run_20260821_1030",
+          "legacy   (pre-versioning rows, migrated, ages out first)"),
+  fill = c("#e5f2e5", "#e8f0f8", "#f0f0f0"))
+p12 <- ggplot(vt) +
+  annotate("rect", xmin = 0.8, xmax = 9.2, ymin = 0.75, ymax = 3.75,
+           fill = NA, color = "grey30", linewidth = 0.6) +
+  annotate("text", x = 1.0, y = 3.52, hjust = 0, size = 3.4,
+           fontface = "bold", label = "monthly_trends  (one table)") +
+  geom_rect(aes(xmin = 1.2, xmax = 8.8, ymin = y - 0.32, ymax = y + 0.32),
+            fill = vt$fill, color = "grey45", linewidth = 0.35) +
+  geom_text(aes(x = 1.45, y = y, label = lab), hjust = 0, size = 3.0) +
+  annotate("text", x = 9.55, y = 2.9, hjust = 0, size = 2.8, color = "grey35",
+           label = "read_result(con, name)\n= latest vintage,\nold schema, no run_id") +
+  annotate("text", x = 9.55, y = 1.7, hjust = 0, size = 2.8, color = "grey35",
+           label = "run selector\n= any vintage,\nsame charts") +
+  annotate("segment", x = 9.45, xend = 8.9, y = c(2.9, 1.7), yend = c(2.9, 1.9),
+           arrow = arrow(length = unit(0.14, "cm"), ends = "last"), color = "grey45") +
+  annotate("text", x = 5, y = 0.35, size = 2.9, color = "grey30", fontface = "italic",
+           label = "each pipeline run APPENDS its labeled rows; retention keeps the newest N; nothing is silently overwritten again") +
+  scale_x_continuous(limits = c(0.5, 12.6)) +
+  scale_y_continuous(limits = c(0.1, 4.1)) +
+  labs(title = "Versioned results: one table, many vintages",
+       subtitle = "A wine rack, not a whiteboard: runs add labeled bottles instead of wiping yesterday to write today.\nEvent tables (84K rows) stay unversioned by choice - drill-downs always query current events; documented, not hidden.") +
+  theme_void(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(color = "grey30", size = 9.5),
+        plot.title.position = "plot")
+ggsave("docs/img/one_table_many_vintages.png", p12, width = 9.6, height = 3.9, dpi = 150)
+cat("vintages diagram written\n")

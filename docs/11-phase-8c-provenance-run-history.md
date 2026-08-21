@@ -174,9 +174,10 @@ which computations run, not which data subset; `trend` always
 recomputes over the whole database. *Display scope* (the tab
 controls — the Trends family checkboxes) is what you LOOK at, and
 defaults to everything, because a surveillance instrument's default
-view is "everything under watch." Results computed from only a
-chosen slice, switchable per run, is exactly the versioned-result-
-sets design on the roadmap (§1).
+view is "everything under watch." *(Since Phase 8d: the compute
+scope IS settable — the Pipeline tab's Analysis scope panel — and
+each run's vintage contains exactly its slice, switchable via the
+run selector.)*
 
 **The history is empty on a fresh clone** — correct: a new user has
 no history, and the provenance line says so. History is earned, not

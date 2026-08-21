@@ -61,19 +61,21 @@ onStop(function() dbDisconnect(con))   # tidy up when the app stops
 # 8's Pipeline tab can CHANGE those tables, and after a run the app
 # must be able to reload them without restarting. State that can be
 # refreshed lives in a function; the server keeps it in a reactiveVal.
-load_small_tables <- function(con) {
-  monthly <- dbGetQuery(con, "SELECT * FROM monthly_trends") |>
+load_small_tables <- function(con, run_id = NULL) {
+  # run_id = NULL means "the latest vintage" - the run selector on the
+  # Overview tab passes a specific one to view older results.
+  monthly <- read_result(con, "monthly_trends", run_id) |>
     as_tibble() |>
     mutate(month_date = as.Date(paste0(year_month, "-01")))
 
-  signals <- dbGetQuery(con, "SELECT * FROM signal_stats") |>
+  signals <- read_result(con, "signal_stats", run_id) |>
     as_tibble() |>
     mutate(evans_signal = as.logical(evans_signal))  # SQLite stores 0/1
 
   # narrative_terms stores rates but not the other-families
   # denominators the scatter needs — recover them from what IS stored:
   #   per_10k = 1e4 * n / family_total  =>  family_total = 1e4*n/per_10k
-  terms <- dbGetQuery(con, "SELECT * FROM narrative_terms") |> as_tibble()
+  terms <- read_result(con, "narrative_terms", run_id) |> as_tibble()
   fam_tot <- terms |>
     mutate(family_total = round(1e4 * n / per_10k)) |>
     group_by(device_family) |>
@@ -93,7 +95,11 @@ load_small_tables <- function(con) {
 }
 
 .d0 <- load_small_tables(con)          # first load, at startup
-FAMILIES <- sort(unique(.d0$monthly$device_family))
+# THE canonical family list comes from the CONFIG - never derived
+# from whatever vintage happens to be newest. (A scoped vintage once
+# collapsed this list to one family, which silently mislabeled the
+# next run's scope as 'all families' and computed the wrong thing.)
+FAMILIES <- sort(pipeline_config()$families)
 n_reports <- .d0$n_reports
 
 # The stages the Pipeline tab offers. fetch is deliberately absent:
@@ -122,7 +128,7 @@ QUERY_DICT <- data.frame(
               'mdr_text.text:(cobalt AND revision)'))
 
 DATA_TABLES <- c("monthly_trends", "signal_stats", "narrative_terms",
-                 "clean_events", "raw_events")
+                 "clean_events", "raw_events", "run_history")
 
 trunc_col <- function(x, n = 60) str_trunc(coalesce(x, ""), n)
 
@@ -139,6 +145,7 @@ ui <- navbarPage(
         patterns (text mining).",
         format(n_reports, big.mark = ","), length(FAMILIES))),
       uiOutput("provenance"),
+      uiOutput("run_selector"),
       tags$ul(
         tags$li(strong("Trends"), " — monthly reports with 3-sigma
           control limits; click any point for that month's reports."),
@@ -255,6 +262,18 @@ ui <- navbarPage(
         checkboxGroupInput("mc_stages", "Stages to run",
                            choices = MC_STAGES,
                            selected = c("trend", "signals", "test")),
+        hr(),
+        strong("Analysis scope"),
+        helpText("What this run COMPUTES over. The run's results
+                 contain only this slice — select the run afterwards
+                 and every chart shows exactly this scope."),
+        checkboxGroupInput("mc_families", NULL,
+                           choices = FAMILIES, selected = FAMILIES),
+        fluidRow(
+          column(6, numericInput("mc_y0", "From year", 2020,
+                                 min = 2010, max = 2026, step = 1)),
+          column(6, numericInput("mc_y1", "To year", 2024,
+                                 min = 2010, max = 2026, step = 1))),
         actionButton("mc_run", "Run selected stages",
                      class = "btn-primary"),
         helpText("Stages run in canonical order regardless of tick
@@ -302,7 +321,13 @@ ui <- navbarPage(
         actionButton("q_run", "Run query", class = "btn-primary"),
         br(), br(),
         uiOutput("q_status"),
-        DTOutput("q_result")
+        DTOutput("q_result"),
+        br(),
+        conditionalPanel("output.q_status",
+          downloadButton("q_dl_csv", "CSV"),
+          downloadButton("q_dl_xlsx", "Excel"),
+          helpText("Exports exactly the shown result (the 200-row cap
+                   applies — narrow with WHERE for full precision)."))
       )
     )
   ),
@@ -311,6 +336,8 @@ ui <- navbarPage(
     sidebarLayout(
       sidebarPanel(width = 3,
         selectInput("dt_table", "Table", choices = DATA_TABLES),
+        checkboxInput("dt_all_vintages",
+                      "Show ALL vintages (versioned tables)", FALSE),
         helpText("Sort by clicking a column header; filter with the
                  boxes under the headers. The two big event tables
                  display without the narrative column (it's huge) —
@@ -377,6 +404,10 @@ server <- function(input, output, session) {
 
   # The ledger, as refreshable state - reread after every recorded run.
   RUNS <- reactiveVal(read_run_history(DB_PATH))
+  # The user's chosen vintage. The selector re-renders whenever runs
+  # happen, but the SELECTION only moves when a run SUCCEEDS (or the
+  # user moves it) - an errored run never hijacks the dashboard.
+  SEL_ID <- reactiveVal(NULL)
 
   output$provenance <- renderUI({
     h <- RUNS()
@@ -385,9 +416,52 @@ server <- function(input, output, session) {
       return(tags$p(class = "text-muted", em("No recorded runs yet —
         results below are from the database as found at startup.")))
     r <- piped[1, ]
+    rid <- if (!is.null(r$run_id) && !is.na(r$run_id))
+      paste0(" [", r$run_id, "]") else ""
+    # Only mention the selector when it is actually rendered (>= 2
+    # versions) - never promise furniture that isn't there.
+    hint <- if (length(result_vintages(con, "monthly_trends")) >= 2)
+      " Use the selector below to view an earlier run's results." else ""
     tags$p(class = "text-muted", em(sprintf(
-      "Results from: %s (%s) — %s, %s.",
-      r$kind, r$detail, r$outcome, r$run_at)))
+      "Latest run: %s (%s) — %s, %s%s.%s",
+      r$kind, r$detail, r$outcome, r$run_at, rid, hint)))
+  })
+
+  # The run selector: every vintage present on the trends table,
+  # newest first. Choosing one re-reads ALL dashboard tables for that
+  # vintage - the charts show the chosen run, at last.
+  output$run_selector <- renderUI({
+    RUNS()                                   # re-render after new runs
+    ids <- result_vintages(con, "monthly_trends")
+    if (length(ids) < 2) return(NULL)        # one vintage: nothing to choose
+    # Label each vintage with its recorded scope, so the menu answers
+    # "which run WAS that?" before you pick it.
+    h <- RUNS()
+    labs <- vapply(ids, function(id) {
+      d <- h$detail[match(id, h$run_id)]
+      if (is.na(d)) id else paste0(id, "  —  ", d)
+    }, character(1))
+    sel <- SEL_ID()
+    if (is.null(sel) || !sel %in% ids) sel <- ids[1]
+    selectInput("run_sel", "Viewing results from run:",
+                choices = stats::setNames(ids, labs),
+                selected = sel, width = "560px")
+  })
+
+  observeEvent(input$run_sel, {
+    SEL_ID(input$run_sel)
+    DATA(load_small_tables(con, input$run_sel))
+    showNotification(paste("Dashboard showing vintage", input$run_sel),
+                     type = "message")
+  }, ignoreInit = TRUE)
+
+  # The Trends family checkboxes follow the vintage: a spinal-only
+  # run offers (and selects) only spinal - the display matches the
+  # scope that was actually computed.
+  observeEvent(DATA(), {
+    fams <- sort(unique(DATA()$monthly$device_family))
+    updateCheckboxGroupInput(session, "trend_families",
+                             choices = fams, selected = fams)
   })
 
   output$mc_history <- renderDT({
@@ -444,7 +518,13 @@ server <- function(input, output, session) {
 
   # ---- Signals tab ---------------------------------------------------
   output$signal_plot <- renderPlotly({
-    plot_top_signals_interactive(DATA()$signals, top_n = input$sig_top_n,
+    s <- DATA()$signals
+    validate(need(nrow(s) > 0 && sum(s$evans_signal) > 0,
+      "No signals in this run's vintage. Signals are comparative — a
+       family measured against all the others — so they need at least
+       two families in the analysis scope. Pick a broader run in the
+       selector, or run the pipeline with 2+ families."))
+    plot_top_signals_interactive(s, top_n = input$sig_top_n,
                                  source = "signals")
   })
 
@@ -474,8 +554,13 @@ server <- function(input, output, session) {
 
   # ---- Narratives tab ------------------------------------------------
   output$term_plot <- renderPlotly({
-    plot_term_scatter_interactive(DATA()$terms,
-                                  min_per_10k = input$term_min_rate,
+    d <- DATA()$terms
+    validate(need(nrow(d) > 0,
+      "No vocabulary in this run's vintage. Distinctive terms are
+       comparative (each family's words vs all other families') — they
+       need at least two families in the analysis scope. Pick a
+       broader run in the selector, or run with 2+ families."))
+    plot_term_scatter_interactive(d, min_per_10k = input$term_min_rate,
                                   source = "terms")
   })
 
@@ -514,10 +599,31 @@ server <- function(input, output, session) {
     stages <- names(PIPELINE_STAGES)[names(PIPELINE_STAGES) %in%
                                        input$mc_stages]
     cfg <- pipeline_config()
+    cfg$run_id <- new_run_id()               # this run's vintage label
+    # The analysis scope, from the panel. Full scope stays NULL so
+    # default runs keep their exact old behavior.
+    full_fams <- setequal(input$mc_families, FAMILIES)
+    if (!full_fams) cfg$analysis_families <- input$mc_families
+    if (!identical(input$mc_y0, 2020)) cfg$analysis_year_from <- input$mc_y0
+    if (!identical(input$mc_y1, 2024)) cfg$analysis_year_to   <- input$mc_y1
+    scope_lab <- paste0(
+      if (full_fams) "all families" else paste(input$mc_families, collapse = "+"),
+      ", ", input$mc_y0, "-", input$mc_y1)
+
+    # Signals and distinctive terms are COMPARATIVE - a family
+    # measured against all the others. One family in scope means
+    # there is no "others": skip those stages, honestly, up front.
+    pre_lines <- character()
+    comparative <- intersect(stages, c("signals", "terms"))
+    if (length(input$mc_families) < 2 && length(comparative) > 0) {
+      stages <- setdiff(stages, comparative)
+      pre_lines <- paste0("[scope] skipped ", paste(comparative, collapse = ", "),
+        ": comparative statistics need at least 2 families in scope")
+    }
     # The app lives in app/; the stages assume the project root.
     owd <- getwd(); on.exit(setwd(owd), add = TRUE); setwd("..")
 
-    lines <- character(); times <- data.frame()
+    lines <- pre_lines; times <- data.frame()
     withProgress(message = "Pipeline running", value = 0, {
       for (i in seq_along(stages)) {
         s <- stages[i]
@@ -548,17 +654,21 @@ server <- function(input, output, session) {
     mc_timings(times)
 
     # The ledger line for this run - failures included, honestly.
-    record_run(DB_PATH, "pipeline", paste(stages, collapse = ", "),
+    record_run(DB_PATH, "pipeline",
+               paste0(paste(stages, collapse = ", "), " [", scope_lab, "]"),
                if (ok) "ok" else "error",
                summary = paste(lines[grepl("^\\[", lines)], collapse = " | "),
-               seconds = sum(times$seconds))
+               seconds = sum(times$seconds), run_id = cfg$run_id)
     RUNS(read_run_history(DB_PATH))
 
     # AUTO-refresh: a run that changed the tables refreshes the
     # dashboard by itself (the Reload button remains for db changes
     # made OUTSIDE the app, e.g. a Terminal pipeline run).
     if (ok) {
-      DATA(load_small_tables(con))
+      # Load THIS run's vintage explicitly - never 'whatever sorts
+      # latest', which is the same thing only when clocks behave.
+      SEL_ID(cfg$run_id)
+      DATA(load_small_tables(con, cfg$run_id))
       showNotification("Run recorded; dashboard refreshed.", type = "message")
     }
   })
@@ -604,6 +714,21 @@ server <- function(input, output, session) {
     datatable(r$data, options = list(pageLength = 10, dom = "tp",
                                      scrollX = TRUE), rownames = FALSE)
   })
+
+  output$q_dl_csv <- downloadHandler(
+    filename = function() "query_result.csv",
+    contentType = "text/csv",
+    content = function(file) {
+      r <- q_out(); req(r$ok)
+      write.csv(r$data, file, row.names = FALSE)
+    })
+  output$q_dl_xlsx <- downloadHandler(
+    filename = function() "query_result.xlsx",
+    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    content = function(file) {
+      r <- q_out(); req(r$ok)
+      writexl::write_xlsx(r$data, file)
+    })
 
   # ---- Ingest tab ----------------------------------------------------
   output$ing_dict <- renderTable(QUERY_DICT, striped = TRUE)
@@ -663,7 +788,22 @@ server <- function(input, output, session) {
   # ---- Data tab ------------------------------------------------------
   dt_data <- reactive({
     input$mc_reload                       # refresh after pipeline runs
+    RUNS()                                # and after recorded runs
     tbl <- input$dt_table
+    # Versioned tables follow the run selector by default; tick the
+    # box to see every vintage side by side (run_id column tells them
+    # apart).
+    if (tbl %in% c("monthly_trends", "signal_stats", "narrative_terms") &&
+        !isTRUE(input$dt_all_vintages)) {
+      vid <- SEL_ID()
+      if (is.null(vid)) vid <- result_vintages(con, tbl)[1]
+      if (length(vid) == 1 && !is.na(vid)) {
+        out <- dbGetQuery(con, paste0("SELECT * FROM ", tbl,
+                                      " WHERE run_id = ?"),
+                          params = list(vid))
+        return(out)
+      }
+    }
     # The big event tables come to the BROWSER without narrative (it is
     # enormous); downloads (below) always query the full table fresh.
     if (tbl %in% c("clean_events", "raw_events")) {

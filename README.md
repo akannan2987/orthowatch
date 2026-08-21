@@ -294,6 +294,25 @@ how they got that way. 79 tests.
 
 ![Run history](figures/run_history.png)
 
+### Phase 8d — Runs become first-class citizens
+
+The final construction: **versioned result sets**. Each pipeline run
+appends its results to the three analysis tables labeled with its
+run id — one table, many vintages, nothing silently overwritten
+again — with in-place migration (existing rows become the `legacy`
+vintage), idempotent per-run writes, and a retention policy. A
+**run selector** on the Overview switches the entire dashboard to
+any kept vintage; `run_history` joins the Data tab's exportable
+tables; every Query-tab result gains CSV/Excel downloads. An **Analysis
+scope** panel on the Pipeline tab sets what each run *computes over*
+(families × years) — a scoped run's vintage contains exactly its
+slice, the selector labels every run with its scope, and the chart
+controls follow the chosen vintage. The event tables deliberately
+stay unversioned (documented trade-off: drill-downs always query
+current events). 92 tests.
+
+![The run selector](figures/run_selector.png)
+
 ## Build log
 
 | # | Document | Status |
@@ -311,6 +330,7 @@ how they got that way. 79 tests.
 | 8 | [Mission Control — the app suite](docs/09-phase-8-mission-control.md) | ✅ |
 | 8b | [Scoped ingestion & data access](docs/10-phase-8b-scoped-ingestion-data-access.md) | ✅ |
 | 8c | [Provenance & run history](docs/11-phase-8c-provenance-run-history.md) | ✅ |
+| 8d | [Versioned results & run selector](docs/12-phase-8d-versioned-results.md) | ✅ |
 | 9 | Polish & release notes | planned |
 
 ## The tutorial, in order
@@ -482,7 +502,9 @@ orthowatch/
 ├── R/                             ← the engine: reusable, tested functions
 │   ├── clean_events.R             ← cleaning rules (Phase 2)
 │   ├── console.R                  ← read-only query engine (Phase 8)
-│   ├── run_history.R              ← the ledger: record + read runs (Phase 8c)
+│   ├── run_history.R              ← the ledger + versioned vintages
+│   │                                (record/read runs, Phase 8c;
+│   │                                 write_versioned/read_result, Phase 8d)
 │   ├── trending.R                 ← control-limit trending (Phase 3)
 │   ├── signal_detection.R         ← PRR/ROR disproportionality (Phase 4)
 │   └── text_mining.R              ← narrative tokenization + term stats (Phase 5)
